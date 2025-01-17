@@ -4,8 +4,8 @@ function [cells] = getGrid(cells, M, env, nn)
 %
 % Inputs:
 %   cells - A cell array where each element is a structure representing a place cell,
-%           containing at least a field 'fmap' which is the firing rate map.
-%   M     - A matrix representing spatial relationships, used for eigen decomposition.
+%           containing 'fmap' which is the firing rate map.
+%   M     - SR connectivity matrix, used for eigen decomposition.
 %   env   - A structure representing the environment, containing at least a field 'L'
 %           which is a binary matrix used for masking and smoothing operations.
 %
@@ -21,7 +21,7 @@ if strcmp(nn, 'off')
     % Perform eigen decomposition of matrix M
     [V, ~] = eig(M);
 else   
-    % non negative eigen decomp/PCA methods
+    % non negative eigen decomp/PCA methods    
     V = NNPCA2014(M, 200);
     % [W, H] = nnmf(M, 10);
     % [V] = nonNegativeEig(M, 200);

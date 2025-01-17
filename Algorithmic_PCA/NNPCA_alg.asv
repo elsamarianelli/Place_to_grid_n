@@ -1,5 +1,4 @@
-%% NN algorithmic PCA whole
-%  inputting PC firing directly instead of training SR matrix as done in dordek
+%% NN algorithmic PCA whole - using dans heirarchical set up, inputting PC firing directly instead of training SR
 
 %% [1] Generating fr for pcs across whole trajectory (reformated)
  
@@ -28,13 +27,17 @@ figure; plot(xy_field_u(:,1), xy_field_u(:,2),'.');
 figure; imagesc(format_1(:,:,100))
 
 %% [2] Generate grids - hierarchical structure
+% addpath '/Users/elsamarianelli/Documents/GitHub/place2grid/matlab' % to dans
 
 method = 'nnpca';
 
-NumberOfPC = 25; % number of principle components
+NumberOfPC = 1; % number of principle components
 elec = format_2; % firing for each step
 pfields = format_1; % firing rate maps for whole environment
-% 
+
+u = NNPCA2014(elec - mean(elec, 2)); % temporal mean subtracted
+u = NNPCA2014(elec - mean(elec, 1)); % spatial mean subtracted
+
 switch method
     case 'pca'
         u = pca(elec' - mean(elec)');
@@ -44,13 +47,9 @@ switch method
         L = length(elec);
         for z=1:NumberOfPC %per PC
             
-            % subtract spatial  the mean from every feature
-            % meanInputMat = mean(r_saved,2);
-            % InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,1,L);
-            % 
-            % EM subtract temporal mean from every time step 
-            meanInputMat = mean(r_saved,1);
-            InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,size(elec,1),1);
+            % subtract the mean from every feature
+            meanInputMat = mean(r_saved,2);
+            InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,1,L);
 
             % send the fixed data to the Monatrani algorithm, see 
             % (Montanari A, Richard E. Non-negative principal component 

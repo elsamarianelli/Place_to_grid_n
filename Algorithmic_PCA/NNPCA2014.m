@@ -9,6 +9,7 @@ function [ v] = NNPCA2014( Input_matrix,v)
 n = max(size(Input_matrix)); %samples
 p = min (size(Input_matrix)); % variables
 X = Input_matrix';
+
 if nargin <2
     v = rand(p,1) ;%v(t)
    %  v = ones(p,1) ;%v(t)
@@ -28,6 +29,7 @@ for t=2:T
     d = sqrt(n)/norm(u,2);
     v_prev  = v;
     v=X'*g(u,n) - d*f(v,n);
+
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%STOP condition%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if(  norm(v_prev - v,'fro'))<1e-1
@@ -55,21 +57,21 @@ u(u<0) = 0;
 u = u./norm(u);
 fprintf('Done with calcaulations\n');
 end %end of function
-
-%% BACKUP%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   %  %crearting (v(t))+
-   %  vPlus = v;
-   %  vPlus(vPlus<0)=0;
-   % 
-   %  b = numel(vPlus(vPlus~=0)) / (sqrt(n) * norm(vPlus,2));
-   %  %function of f or g, the only difference is the input type. added eps to prevent 0/0
-   %  f = @(x) sqrt(n)*x/(norm(x,2)+eps);
-   %  % calculating u
-   %  u = X*f(vPlus) - b*f(u_minus1);
-   %  %calculating v
-   %  d = sqrt(n)/norm(u,2); %use the new u
-   % v_zero = X'*f(u) - d*f( vPlus);
-   % u_minus1 = u;
-   % v_save(:,t) = v_zero;
-%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% % BACKUP%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%     %crearting (v(t))+
+%     vPlus = v;
+%     vPlus(vPlus<0)=0;
+% 
+%     b = numel(vPlus(vPlus~=0)) / (sqrt(n) * norm(vPlus,2));
+%     %function of f or g, the only difference is the input type. added eps to prevent 0/0
+      % f = @(x) sqrt(n)*x/(norm(x,2)+eps);
+%     % calculating u
+%     u = X*f(vPlus) - b*f(u_minus1);
+%     %calculating v
+%     d = sqrt(n)/norm(u,2); %use the new u
+%    v_zero = X'*f(u) - d*f( vPlus);
+%    u_minus1 = u;
+%    v_save(:,t) = v_zero;
+% %%%%%%%%%%%%%%%%%%%%%%
