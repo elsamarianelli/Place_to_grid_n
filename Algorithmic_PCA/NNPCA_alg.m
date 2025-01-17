@@ -22,7 +22,7 @@ distribution_type = 'random';
 ToroidalPlaceCellMaps = get_PCs_toroidal(env, n_cells, xy_field_u, 5, 0);
 
 % reformat for later use (want format_2 in this case)
-[format_1, format_2] = reformat_firing_maps(ToroidalPlaceCellMaps, traj);
+[format_1, format_2] = reformat_firing_maps(PlaceCellsUni, traj);
 
 figure; plot(xy_field_u(:,1), xy_field_u(:,2),'.');
 figure; imagesc(format_1(:,:,100))
