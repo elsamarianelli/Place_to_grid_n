@@ -1,4 +1,4 @@
-function structout = modifyExistingFields(structin, varargin)
+function structout = ModifyExistingFields(structin, varargin)
 % ModifyExistingFields is based on Matlab's setstructfields.
 %
 % structout is the same as structin, but some field values have been
