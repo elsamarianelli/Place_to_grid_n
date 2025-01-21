@@ -30,8 +30,8 @@ clear all; close all;
 dim_x = 300; dim_y = 300;
 n_polys = 1; polys = cell(n_polys, 1);
 polys{1} = [0 0, dim_x-2, 0, dim_x-2 dim_y-2, 0 dim_y-2, 0 0] + 2; 
-n_cells = 2000;
-n_steps = 360000;
+n_cells = 2500;
+n_steps = 1000000;
 speed = 10;
 
 % Generating Environment
@@ -114,7 +114,7 @@ PC = PC_NN; % switch from PC_Standard
 figure(2); % GC firing
 for ii = 1:NumberOfPC
     subplot(5,NumberOfPC/5,ii)
-    map = p2g_combine_placefields(pfields, PC(:,ii));
+    map = p2g_combine_placefields(format_1, PC(:,ii));
     imagesc(map)
     colormap jet
     drawnow
@@ -146,7 +146,7 @@ grid_metrics = cell(n_cells, 1);
 % Loop over j (vertical) and k (horizontal)
 for GC_PC = 1:length(grids_fmap)
     try
-        subplot(5,5,GC_PC)
+        subplot(5,NumberOfPC/5,GC_PC)
         sac = xPearson(grids_fmap{GC_PC}.map);
         % Pass sac to autoCorrProps
         in.sac = sac;
@@ -159,7 +159,7 @@ for GC_PC = 1:length(grids_fmap)
     end
 end
 
-% %% [4] analyse resulting Grids binned
+% % %% [4] analyse resulting Grids binned
 % % set limits for dividing environment into 9 subregions
 % x_lims = [0, dim_x/3; dim_x/3, 2*(dim_x/3); 2*(dim_x/3), dim_x-0]; % X-axis limits for sub-regions
 % y_lims = [0, dim_y/3; dim_y/3, 2*(dim_y/3); 2*(dim_y/3), dim_y-0]; % Y-axis limits for sub-regions
@@ -167,12 +167,13 @@ end
 % figure(5);
 % j_l = 0:3:6;
 % % Loop over j (vertical) and k (horizontal)
-% for GC_PC = 1:length(grids_fmap)
+% for GC_PC = 30:length(grids_fmap)
 %     figure(GC_PC);
 %     for j = 1:3
 %         for k = 1:3
 %             try
-%                 subplot(3, 3, (j_l(j) + k));
+%                 subplot(3, 3, (j_l(j) + (k)));
+%                 disp((j_l(j) + (k)))
 %                 sac = xPearson(grids_fmap{GC_PC}.map(y_lims(j, 1):y_lims(j, 2), x_lims(k, 1):x_lims(k, 2)));
 %                 % Pass sac to autoCorrProps
 %                 in.sac = sac;
@@ -186,4 +187,4 @@ end
 %         end
 %     end
 % end
-
+% 
