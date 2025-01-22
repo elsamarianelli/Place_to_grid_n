@@ -141,8 +141,6 @@ for iii = 1:NumberOfPC
     drawnow
 end
 
-
-
 %% [3] analyse resulting Grids (not binned)
 % addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/GridAnalysis/'
 % addpath '/Users/elsamarianelli/Documents/GitHub/boundary_warped_place2grid/Misc'
