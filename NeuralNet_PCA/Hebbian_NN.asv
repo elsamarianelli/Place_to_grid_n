@@ -14,8 +14,8 @@ In.y = 300;
 n_polys = 1;        % enironemnt shape
 polys = cell(n_polys, 1);
 polys{1} = [0 0, (In.x - 2), 0, (In.x -2) (In.y - 2), 0 (In.y-2), 0 0] + 2; 
-In.n_steps = 500000;% number of steps in trajectory
-In.n_PCs = 30^2;    % number of place cells, need more if doing random distribution
+In.n_steps = 600000;% number of steps in trajectory
+In.n_PCs = 15^2;    % number of place cells, need more if doing random distribution
 In.n_GCs = 1;       % number of grid cells
 
 % generating environment
@@ -67,11 +67,10 @@ In.Hasselmo = 0;      % trajectory to be used
 In.mean_zero = 'off'; % 'diff' or 'adapt'
 In.adapt_rate = 0.5./3; % growth rate for inactivation of adaptation??
 In.Sat = 30; % used when calculating gaussian fr in their version, although 
-             % here the fr maps are calculate before hand then passed in
+                % here the fr maps are calculate before hand then passed in
 
 %% [2] 
-[W, J] = Network(In); % W = lateral connections between GCs
-                      % J = PCs to GCs
+[W, J] = Network(In); % W = lateral connections between GCs, J = PCs to GCs
 
 %% visualise periodic boundaries trajectory 
 n_steps = 5000;

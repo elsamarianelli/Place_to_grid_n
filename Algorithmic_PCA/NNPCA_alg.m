@@ -24,15 +24,20 @@
 
 %% [1] Generating fr for pcs across whole trajectory (reformated)
 
+% clear existing variables and add paths
 clear all; close all; 
+addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\General_functions'
+addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_PCA\Functions'
+addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\boundary_warped_place2grid\Neural_net'
+addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_PCA'
 
 % Define environment dimensions and the number of cells
 dim_x = 300; dim_y = 300;
 n_polys = 1; polys = cell(n_polys, 1);
 polys{1} = [0 0, dim_x-2, 0, dim_x-2 dim_y-2, 0 dim_y-2, 0 0] + 2; 
 n_cells = 2500;
-n_steps = 1000000;
-speed = 10;
+n_steps = 500000;
+speed = 5;
 
 % Generating Environment
 env = GenerateEnv(polys, dim_x, dim_y, 'trapezoid');
@@ -48,7 +53,7 @@ y = ceil(mod(steps(:,2),dim_y));
 traj = [x,y];
 
 % Populating Place Cells
-distribution_type = 'array'; 
+distribution_type = 'random'; 
 [PlaceCellsUni, PlaceCellsTanni, env, xy_field_u, xy_field_t] = ...
     generate_place_cells(env, n_cells, dim_x, dim_y, 2, distribution_type);
 
@@ -56,7 +61,7 @@ distribution_type = 'array';
 size_control = 7; % bigger for smaller PC firing fields
 ToroidalPlaceCellMaps = get_PCs_toroidal(env, n_cells, xy_field_u, size_control, 0); 
 
-% put into formats needed for PCA functions (1) and plotting (2) 
+% put into formats needed for PCA functions and plotting 
 [format_1, format_2] = reformat_firing_maps(ToroidalPlaceCellMaps, traj);
 
 % visualise
@@ -66,7 +71,7 @@ figure(1); subplot(1,2,1); plot(xy_field_u(:,1), xy_field_u(:,2),'.'); hold on;
 %% [2] Generate grids - with pca and nn pca (zero mean input)
 %  NNPCA subtracts projection of each PC ouput from data before calculating next PC
 
-NumberOfPC = 35;       % number of principle components to be generated
+NumberOfPC = 30;       % number of principle components to be generated (heirarchical structure)
 zero_mean = 'spatial'; % option for how to zero-mean input data
 
 % [a] standard PCA (zero mean input data)
@@ -108,13 +113,13 @@ end
 %% try and project the first eigenvector (column of v) back to real world
 % first take a column of v and multiply it by the place fields from the OG
 % data to make the grid cell representation
-
+ 
 PC = PC_NN; % switch from PC_Standard
 
-figure(2); % GC firing
+figure; % GC firing
 for ii = 1:NumberOfPC
     subplot(5,NumberOfPC/5,ii)
-    map = p2g_combine_placefields(format_1, PC(:,ii));
+    map = comb_fields(format_1, PC(:,ii));
     imagesc(map)
     colormap jet
     drawnow
@@ -123,10 +128,10 @@ end
 grids_fmap = cell(NumberOfPC, 1);
 grids_sac = cell(NumberOfPC, 1);
 
-figure(3); % sac
+figure; % sac
 for iii = 1:NumberOfPC
     subplot(5,NumberOfPC/5,iii)
-    map = p2g_combine_placefields(format_1, PC(:,iii));
+    map = comb_fields(format_1, PC(:,iii));
     grids_fmap{iii}.map = map;
     cross_corr = xPearson(map);
     grids_sac{iii}.sac = cross_corr;
@@ -140,8 +145,8 @@ end
 % addpath '/Users/elsamarianelli/Documents/GitHub/boundary_warped_place2grid/Misc'
 % addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/Miscellaneous/'
 addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\analysis-matlab-master\GridAnalysis'
-
-figure(4);
+addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\analysis-matlab-master\Miscellaneous'
+figure;
 grid_metrics = cell(n_cells, 1);
 % Loop over j (vertical) and k (horizontal)
 for GC_PC = 1:length(grids_fmap)
@@ -159,32 +164,34 @@ for GC_PC = 1:length(grids_fmap)
     end
 end
 
-% % %% [4] analyse resulting Grids binned
-% % set limits for dividing environment into 9 subregions
-% x_lims = [0, dim_x/3; dim_x/3, 2*(dim_x/3); 2*(dim_x/3), dim_x-0]; % X-axis limits for sub-regions
-% y_lims = [0, dim_y/3; dim_y/3, 2*(dim_y/3); 2*(dim_y/3), dim_y-0]; % Y-axis limits for sub-regions
-% grid_metrics_binned = cell(NumberOfPC, 3, 3);
-% figure(5);
-% j_l = 0:3:6;
-% % Loop over j (vertical) and k (horizontal)
-% for GC_PC = 30:length(grids_fmap)
-%     figure(GC_PC);
-%     for j = 1:3
-%         for k = 1:3
-%             try
-%                 subplot(3, 3, (j_l(j) + (k)));
-%                 disp((j_l(j) + (k)))
-%                 sac = xPearson(grids_fmap{GC_PC}.map(y_lims(j, 1):y_lims(j, 2), x_lims(k, 1):x_lims(k, 2)));
-%                 % Pass sac to autoCorrProps
-%                 in.sac = sac;
-%                 in.PLOT_ON = true; hold on;
-%                 in.PLOT_Ellipse_ON = true;
-%                 metrics = autoCorrProps(in);
-%                 grid_metrics_binned{GC_PC, j, k} = metrics;
-%             catch
-%                 fprintf('error...\n')
-%             end
-%         end
-%     end
-% end
-% 
+%% [4] analyse resulting Grids binned
+% set limits for dividing environment into 9 subregions
+x_lims = [1, dim_x/3; dim_x/3, 2*(dim_x/3); 2*(dim_x/3), dim_x-1]; % X-axis limits for sub-regions
+y_lims = [1, dim_y/3; dim_y/3, 2*(dim_y/3); 2*(dim_y/3), dim_y-1]; % Y-axis limits for sub-regions
+grid_metrics_binned = cell(NumberOfPC, 3, 3);
+figure;
+j_l = 0:3:6;
+% Loop over j (vertical) and k (horizontal)
+for GC_PC = 28:length(grids_fmap)
+    figure;
+    tiledlayout(3, 3, 'TileSpacing','compact', 'Padding','tight')
+    for j = 1:3
+        for k = 1:3
+            try
+                nexttile
+                % imagesc(grids_fmap{GC_PC}.map(y_lims(j, 1):y_lims(j, 2), x_lims(k, 1):x_lims(k, 2)))
+                % disp((j_l(j) + (k)))
+                sac = xPearson(grids_fmap{GC_PC}.map(y_lims(j, 1):y_lims(j, 2), x_lims(k, 1):x_lims(k, 2)));
+                % Pass sac to autoCorrProps
+                in.sac = sac;
+                in.PLOT_ON = true; hold on;
+                in.PLOT_Ellipse_ON = true;
+                metrics = autoCorrProps(in);
+                grid_metrics_binned{GC_PC, j, k} = metrics;
+            catch
+                fprintf('error...\n')
+            end           
+        end
+    end
+end
+
