@@ -1,11 +1,12 @@
 %% Algorithmic zero-meaned NNPCA implementation
 
 %  code to implemetnt PCA which takes firing rates of PCs along whole
-%  trajectory (zero meaned) as direct input instead of learning SR matrix
-%  using TDLR and performing eigendecomposition on this.
+%  trajectory (zero meaned) as direct input (instead of eigdecomp on
+%  SR matrix learnt using TDLR)
 
 %  Using "Montanari A, Richard E. Non-negative principal component analysis  
-%  Message Passing Algorithms and Sharp Asymptotics" approach.
+%  Message Passing Algorithms and Sharp Asymptotics" approach. (FISTA would
+%  be faster though).
 
 %% Parameter considerations:
 
@@ -32,12 +33,12 @@ addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\boundary_warped_place2grid\Ne
 addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_PCA'
 
 % Define environment dimensions and the number of cells
-dim_x = 300; dim_y = 300;
+dim_x = 300; dim_y = 250;
 n_polys = 1; polys = cell(n_polys, 1);
 polys{1} = [0 0, dim_x-2, 0, dim_x-2 dim_y-2, 0 dim_y-2, 0 0] + 2; 
 n_cells = 2500;
 n_steps = 500000;
-speed = 5;
+speed = 10;
 
 % Generating Environment
 env = GenerateEnv(polys, dim_x, dim_y, 'trapezoid');
@@ -53,7 +54,7 @@ y = ceil(mod(steps(:,2),dim_y));
 traj = [x,y];
 
 % Populating Place Cells
-distribution_type = 'random'; 
+distribution_type = 'array'; 
 [PlaceCellsUni, PlaceCellsTanni, env, xy_field_u, xy_field_t] = ...
     generate_place_cells(env, n_cells, dim_x, dim_y, 2, distribution_type);
 
@@ -109,8 +110,8 @@ for z=1:NumberOfPC
     r_saved = InputMatFixed - PC_NN(:,z) * (PC_NN(:,z)'*InputMatFixed);
 
 end
-
-%% try and project the first eigenvector (column of v) back to real world
+ 
+%% project the first eigenvector back to real world
 % first take a column of v and multiply it by the place fields from the OG
 % data to make the grid cell representation
  
@@ -140,6 +141,8 @@ for iii = 1:NumberOfPC
     drawnow
 end
 
+
+
 %% [3] analyse resulting Grids (not binned)
 % addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/GridAnalysis/'
 % addpath '/Users/elsamarianelli/Documents/GitHub/boundary_warped_place2grid/Misc'
@@ -164,7 +167,7 @@ for GC_PC = 1:length(grids_fmap)
     end
 end
 
-%% [4] analyse resulting Grids binned
+%% [4] analyse resulting Grids binned --> grid scale too large to split bins for at least first 30 PCs
 % set limits for dividing environment into 9 subregions
 x_lims = [1, dim_x/3; dim_x/3, 2*(dim_x/3); 2*(dim_x/3), dim_x-1]; % X-axis limits for sub-regions
 y_lims = [1, dim_y/3; dim_y/3, 2*(dim_y/3); 2*(dim_y/3), dim_y-1]; % Y-axis limits for sub-regions
@@ -195,3 +198,20 @@ for GC_PC = 28:length(grids_fmap)
     end
 end
 
+%% trying original 
+% addpath 'Dordek-et-al.-Matlab-code\'Yedidyah''s code'\functions\PCAEvecCalc'
+% PC_hold = struct;
+% r_saved = format_2;
+% NumberOfPC = 15;
+% 
+% [PC_hold] = PCAEvecCalc(PC_hold,r_saved,NumberOfPC);
+% 
+% map = comb_fields(format_1, PC_hold.PCANNEvec(:,1));
+% figure; % GC firing
+% for ii = 1:NumberOfPC
+%     subplot(5,NumberOfPC/5,ii)
+%     map = comb_fields(format_1, PC_hold.PCANNEvec(:,ii));
+%     imagesc(map)
+%     colormap jet
+%     drawnow
+% end
