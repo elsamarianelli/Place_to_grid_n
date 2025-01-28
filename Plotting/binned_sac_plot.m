@@ -23,8 +23,7 @@ addpath('/Users/elsamarianelli/Documents/GitHub/boundary_warped_place2grid/Basic
 %% [1] Load results
 
 output_dir = 'gridness_results_rect'; 
-n_iterations = 1;  % number of iterations to load (need to go into OneDrive - University College London\Documents\MATLAB\PCA on Sanders PC\gridness_results_rect\
-                   % manually for some reason or else doesnt load)
+n_iterations = 1;  % number of iterations to load 
 results = load_results(output_dir,n_iterations);
 
 %% [2] find cells with high hexagonality thresholds
@@ -44,8 +43,8 @@ results = load_results(output_dir,n_iterations);
 
 %% [3] plotting binned combined sac maps for those cells and getting grid metrics for later plots
 
-n_iter = 5;   % iterations of GC generation to run through 
-idx = 1:200;  % GC PCs that you want to use (note that the lower and higher ones of the 200 have problems and metrics are harder to assess)
+n_iter = 1;   % iterations of GC generation to run through 
+idx = 50:150;  % GC PCs that you want to use (note that the lower and higher ones of the 200 have problems and metrics are harder to assess)
 
 % initialise matrices to store grid metrics
 orientation_stored = zeros(3, 3, length(idx), n_iter); % ORIENTATION: degrees anti clockwise from horizontal line where first SAC peak is
@@ -56,12 +55,12 @@ ellipticity_stored = zeros(3, 3, length(idx), n_iter);
 phi_stored = zeros(3, 3, length(idx), n_iter);
 
 % initialise matrices to store grid metrics
-% 
-% orientation_stored_T = orientation_stored;
-% gridness_stored_T =gridness_stored;                                                       
-% scale_stored_T = scale_stored ;
-% ellipticity_stored_T= ellipticity_stored;
-% phi_stored_T = phi_stored;
+
+orientation_stored_U = orientation_stored;
+gridness_stored_U =gridness_stored;                                                       
+scale_stored_U = scale_stored ;
+ellipticity_stored_U= ellipticity_stored;
+phi_stored_U = phi_stored;
 
 orientation_stored = orientation_stored_U;
 gridness_stored =gridness_stored_U;                                                       
@@ -82,7 +81,7 @@ for iteration = 1:5
         % Pick an index of a grid cell map which has a high hexagonal gridness score
         i = idx(p);
         disp(i)
-        cells = results.cells_T{iteration};
+        cells = results.cells_U{iteration}; %% CHANGE
         
         % % uncomment to plot
         % figure;
@@ -134,6 +133,7 @@ for iteration = 1:5
 end
 
 
+%% 
 %% [4] looking at meaned gridness scores
 
 % take mean across iterations and across subgroups of environemnt (corner, sides and central)

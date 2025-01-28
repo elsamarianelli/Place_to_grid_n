@@ -36,81 +36,105 @@ addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_P
 dim_x = 300; dim_y = 250;
 n_polys = 1; polys = cell(n_polys, 1);
 polys{1} = [0 0, dim_x-2, 0, dim_x-2 dim_y-2, 0 dim_y-2, 0 0] + 2; 
-n_cells = 2500;
+n_cells = 2000;
 n_steps = 500000;
 speed = 10;
 
 % Generating Environment
 env = GenerateEnv(polys, dim_x, dim_y, 'trapezoid');
+
+% create folder to store some runs
+main_folder = 'results_NNPCA_alg';
+if ~isfolder(main_folder)
+    mkdir(main_folder);
+end
+
+n_iter = 10;
+
+for iter = 1:n_iter  
     
-% Generating Trajectory
-% [a] Hasselmo trajectory - turns away from boundaries, velocity is altered
-% traj = generate_trajectory(env, n_steps);
-
-% [b] OR simpler random walk trajectory (ken's)
-steps = (cumsum(randn(n_steps,2))*speed)+1;
-x = ceil(mod(steps(:,1),dim_x)); 
-y = ceil(mod(steps(:,2),dim_y)); 
-traj = [x,y];
-
-% Populating Place Cells
-distribution_type = 'array'; 
-[PlaceCellsUni, PlaceCellsTanni, env, xy_field_u, xy_field_t] = ...
-    generate_place_cells(env, n_cells, dim_x, dim_y, 2, distribution_type);
-
-% options for periodic boundaries with PC fr wrapping around
-size_control = 7; % bigger for smaller PC firing fields
-ToroidalPlaceCellMaps = get_PCs_toroidal(env, n_cells, xy_field_u, size_control, 0); 
-
-% put into formats needed for PCA functions and plotting 
-[format_1, format_2] = reformat_firing_maps(ToroidalPlaceCellMaps, traj);
-
-% visualise
-figure(1); subplot(1,2,1); plot(xy_field_u(:,1), xy_field_u(:,2),'.'); hold on;
-           subplot(1,2,2); imagesc(format_1(:,:,100))
-
-%% [2] Generate grids - with pca and nn pca (zero mean input)
-%  NNPCA subtracts projection of each PC ouput from data before calculating next PC
-
-NumberOfPC = 30;       % number of principle components to be generated (heirarchical structure)
-zero_mean = 'spatial'; % option for how to zero-mean input data
-
-% [a] standard PCA (zero mean input data)
-PC_Standard = pca(format_2' - mean(format_2)');
-
-% [b] NN PCA (hierarchical) 
-r_saved = format_2;
-L = length(format_2);
-
-for z=1:NumberOfPC 
+    subfolder_name = fullfile(main_folder, ['results_iter_', num2str(iter)]);
     
-    % zero-mean input data
-    if strcmp(zero_mean, 'spatial')
-        meanInputMat = mean(r_saved,2);
-        InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,1,L);
-    elseif strcmp(zero_mean, 'temporal')
-        meanInputMat = mean(r_saved,1);
-        InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,size(format_1,1),1);
+    % Create the subfolder
+    if ~isfolder(subfolder_name)
+        mkdir(subfolder_name);
     end
-
-    % Using Montanari A, Richard E. Non-negative principal component analysis 
-    PC_NN(:,z) = NNPCA2014(InputMatFixed);
-
-    % break if nans
-    if sum( isnan(PC_NN(:,z))) > 1
-        fprintf('NaNs!! breaking...\n');
-        break;
+    
+    % Generating Trajectory
+    % [a] Hasselmo trajectory - turns away from boundaries, velocity is altered
+    % traj = generate_trajectory(env, n_steps);
+    
+    % [b] OR simpler random walk trajectory (ken's)
+    steps = (cumsum(randn(n_steps,2))*speed)+1;
+    x = ceil(mod(steps(:,1),dim_x)); 
+    y = ceil(mod(steps(:,2),dim_y)); 
+    traj = [x,y];
+    
+    % Populating Place Cells
+    distribution_type = 'array'; 
+    [PlaceCellsUni, PlaceCellsTanni, env, xy_field_u, xy_field_t] = ...
+        generate_place_cells(env, n_cells, dim_x, dim_y, 2, distribution_type);
+    
+    % options for periodic boundaries with PC fr wrapping around
+    size_control = 7; % bigger for smaller PC firing fields
+    boundary_warping = 1;
+    ToroidalPlaceCellMaps = get_PCs_toroidal(env, n_cells, xy_field_u, size_control, boundary_warping); 
+    
+    % put into formats needed for PCA functions and plotting 
+    [format_1, format_2] = reformat_firing_maps(ToroidalPlaceCellMaps, traj);
+    
+    % % visualise
+    % figure(1); subplot(1,2,1); plot(xy_field_u(:,1), xy_field_u(:,2),'.'); hold on;
+    %            subplot(1,2,2); imagesc(format_1(:,:,100))
+    
+    %% [2] Generate grids - with pca and nn pca (zero mean input)
+    %  NNPCA subtracts projection of each PC ouput from data before calculating next PC
+    
+    NumberOfPC = 35;       % number of principle components to be generated (heirarchical structure)
+    zero_mean = 'spatial'; % option for how to zero-mean input data
+    
+    % [a] standard PCA (zero mean input data)
+    PC_Standard = pca(format_2' - mean(format_2)');
+    
+    % [b] NN PCA (hierarchical) 
+    r_saved = format_2;
+    L = length(format_2);
+    
+    for z=1:NumberOfPC 
+        
+        % zero-mean input data
+        if strcmp(zero_mean, 'spatial')
+            meanInputMat = mean(r_saved,2);
+            InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,1,L);
+        elseif strcmp(zero_mean, 'temporal')
+            meanInputMat = mean(r_saved,1);
+            InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,size(format_1,1),1);
+        end
+    
+        % Using Montanari A, Richard E. Non-negative principal component analysis 
+        PC_NN(:,z) = NNPCA2014(InputMatFixed);
+    
+        % break if nans
+        if sum( isnan(PC_NN(:,z))) > 1
+            fprintf('NaNs!! breaking...\n');
+            break;
+        end
+    
+        % calculate the corresponding eigenvalue
+        alpha1(:,z) = PC_NN(:,z)'*(InputMatFixed*InputMatFixed' )*PC_NN(:,z);
+    
+        % subtract the projection of the data on the 1st eigenvector 
+        % from the data, and reuse the "new data" for the next PC calc.
+        r_saved = InputMatFixed - PC_NN(:,z) * (PC_NN(:,z)'*InputMatFixed);
+    
     end
-
-    % calculate the corresponding eigenvalue
-    alpha1(:,z) = PC_NN(:,z)'*(InputMatFixed*InputMatFixed' )*PC_NN(:,z);
-
-    % subtract the projection of the data on the 1st eigenvector 
-    % from the data, and reuse the "new data" for the next PC calc.
-    r_saved = InputMatFixed - PC_NN(:,z) * (PC_NN(:,z)'*InputMatFixed);
+     
+    % save
+    save(fullfile(subfolder_name, ['results', num2str(iter), '.mat']), 'ToroidalPlaceCellMaps', ...
+                                                                       'format_1', 'format_2', ...
+                                                                       'PC_NN', 'PC_Standard');
 
 end
- 
 %% project the first eigenvector back to real world
 % first take a column of v and multiply it by the place fields from the OG
 % data to make the grid cell representation
@@ -163,7 +187,8 @@ for GC_PC = 1:length(grids_fmap)
     catch
         fprintf(strcat('error ', num2str(GC_PC)));
     end
-end
+end 
+
 
 %% [4] analyse resulting Grids binned --> grid scale too large to split bins for at least first 30 PCs
 % set limits for dividing environment into 9 subregions
@@ -196,20 +221,32 @@ for GC_PC = 28:length(grids_fmap)
     end
 end
 
-%% trying original 
-% addpath 'Dordek-et-al.-Matlab-code\'Yedidyah''s code'\functions\PCAEvecCalc'
-% PC_hold = struct;
-% r_saved = format_2;
-% NumberOfPC = 15;
-% 
-% [PC_hold] = PCAEvecCalc(PC_hold,r_saved,NumberOfPC);
-% 
-% map = comb_fields(format_1, PC_hold.PCANNEvec(:,1));
-% figure; % GC firing
-% for ii = 1:NumberOfPC
-%     subplot(5,NumberOfPC/5,ii)
-%     map = comb_fields(format_1, PC_hold.PCANNEvec(:,ii));
-%     imagesc(map)
-%     colormap jet
-%     drawnow
-% end
+%% Looking across multiple iterations of data 
+% Settings: dim_x = 300; dim_y = 250; n_cells = 2000; n_steps = 500000; speed = 10;
+results = zeros(n_cells, NumberOfPC, n_iter);
+subfolders = dir(fullfile(main_folder, 'results_iter_*'));
+metrics.gridness = zeros(1, 10);
+metrics.gridness = zeros(1, 10);
+metrics.gridness = zeros(1, 10);
+metrics.gridness = zeros(1, 10);
+
+for iter = 1:n_iter
+
+    % [1] load 
+    subfolder_path = fullfile(main_folder, ['results_iter_', num2str(iter)]);
+    file_path = fullfile(subfolder_path, ['results', num2str(iter), '.mat']);
+    data = load(file_path);
+    
+    
+    % [2] look at grid metrics for each 
+    for PC = 1:NumberOfPC
+        map = data.PC_NN(:,PC);
+        sac = xPearson(map);
+        % Pass sac to autoCorrProps
+        in.sac = sac;
+        in.PLOT_ON = true; hold on;
+        in.PLOT_Ellipse_ON = true;
+        metrics = autoCorrProps(in); % should be one with EM comments, which has added ellipse function
+    end
+
+

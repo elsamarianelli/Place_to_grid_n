@@ -1,4 +1,4 @@
-%% Plotting saved results (from clean_retry.m)
+%% Plotting saved results (from SR_eigdecomp.m)
 %  Code to plots
 % 1st row = Place cells which form SR successor features generated
 % uniformly and using Sanders style boundary compression 
@@ -17,7 +17,7 @@ addpath('C:\Users\Elsa Marianelli\OneDrive - University College London\Documents
 
 % Specify the directory where the results are saved
 output_dir = 'gridness_results_rect'; 
-n_iterations = 1;  % Number of iterations
+n_iterations = 10;  % Number of iterations
 % load results 
 results = load_results(output_dir,n_iterations);
 
@@ -25,7 +25,7 @@ results = load_results(output_dir,n_iterations);
 n_cells = 200;
 it = 1;
 n = 5;
-n_iter = 1;
+n_iter = 10;
 list_grid = [24, 32, 76, 98, 132];
 
 % Tanni style results for plotting for 1 iteration
@@ -117,15 +117,14 @@ ylabel('Vertical Position');
 title(num2str(idx(p)))
 
 end
-%% trying ucl-hhippocampus on this.
 
 %% 
 % % plotting tiled layout 
-tanni_figure = get_full_tiled_figure('Boundary warped Place Cells', T_place_sf, T_grid, ...
-    T_place_columns, T_grid_scales, gridnessData_T,  n, list_grid, n_cells, n_iter);
-
-uni_figure = get_full_tiled_figure('Uniform Place Cells', U_place_sf, U_grid, ...
-    U_place_columns, U_grid_scales, gridnessData_U, n, list_grid, n_cells, n_iter);
+% tanni_figure = get_full_tiled_figure('Boundary warped Place Cells', T_place_sf, T_grid, ...
+%     T_place_columns, T_grid_scales, gridnessData_T,  n, list_grid, n_cells, n_iter);
+% 
+% uni_figure = get_full_tiled_figure('Uniform Place Cells', U_place_sf, U_grid, ...
+%     U_place_columns, U_grid_scales, gridnessData_U, n, list_grid, n_cells, n_iter);
 
 % plot comparison of variability in normalised scales and orientations in each bin
 
@@ -179,7 +178,7 @@ mean_g = nanmean(scales, 3);
 mean_g = (squeeze(mean_g))/71.71;
 std_g = std(mean_g, 0, 3); 
 mean_g = mean(mean_g, 3);
-
+hold on;
 bar(reshape(mean_g, 1, [])); % Average across cells
 hold on;
 errorbar(reshape(mean_g, 1, []), reshape(std_g, 1, [])./sqrt(n_iter), 'k.');
@@ -199,6 +198,7 @@ mean_g = nanmean(scales, 3);
 mean_g = (squeeze(mean_g))/71.71;
 std_g = std(mean_g, 0, 3); 
 mean_g = mean(mean_g, 3);
+hold on;
 bar(reshape(mean_g, 1, []), 'FaceColor', [0 0.7 0.7]); % Average across cells
 hold on;
 errorbar(reshape(mean_g, 1, []), reshape(std_g, 1, [])./sqrt(n_iter), 'k.');
