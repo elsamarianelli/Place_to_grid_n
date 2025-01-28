@@ -130,12 +130,52 @@ for iter = 1:n_iter
     end
      
     % save
-    save(fullfile(subfolder_name, ['results', num2str(iter), '.mat']), 'ToroidalPlaceCellMaps', ...
-                                                                       'format_1', 'format_2', ...
+    save(fullfile(subfolder_name, ['results', num2str(iter), '.mat']), 'format_1', ...
                                                                        'PC_NN', 'PC_Standard');
 
 end
-%% project the first eigenvector back to real world
+
+%% Looking across multiple iterations of data 
+% Settings: dim_x = 300; dim_y = 250; n_cells = 2000; n_steps = 500000; speed = 10;
+subfolders = dir(fullfile(main_folder, 'results_iter_*'));
+result_metrics = cell(n_iter, 1);
+
+for iter = 1:n_iter
+
+    % [1] load 
+    subfolder_path = fullfile(main_folder, ['results_iter_', num2str(iter)]);
+    file_path = fullfile(subfolder_path, ['results', num2str(iter), '.mat']);
+    data = load(file_path);
+    
+    % [2] generate grid metrics for each reprojected principle component
+    for PC = 1:NumberOfPC
+
+        disp(PC)
+
+        % reproject each PC into 2d space for non negative nd standard
+        % conditions
+        map_NN = comb_fields(data.format_1, data.PC_NN(:,PC));
+        map_S  = comb_fields(data.format_1, data.PC_Standard(:,PC));
+        map = data.PC_NN(:,PC);
+        sac = xPearson(map);
+
+        % Pass sac to autoCorrProps to get metrics (not binned as scales
+        % too small)
+        in.sac = sac;
+        in.PLOT_ON = false; hold on;
+        in.PLOT_Ellipse_ON = false;
+        metrics = autoCorrProps(in); % should be one with EM comments which has ellipse function
+
+        % save
+        result_metrics(n_iter) = metrics;
+
+    end
+
+end
+
+
+%% for single iteration....
+%% project the eigenvectors back to real world
 % first take a column of v and multiply it by the place fields from the OG
 % data to make the grid cell representation
  
@@ -165,7 +205,7 @@ for iii = 1:NumberOfPC
     drawnow
 end
 
-%% [3] analyse resulting Grids (not binned)
+%% analyse resulting Grids (not binned)
 % addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/GridAnalysis/'
 % addpath '/Users/elsamarianelli/Documents/GitHub/boundary_warped_place2grid/Misc'
 % addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/Miscellaneous/'
@@ -190,7 +230,7 @@ for GC_PC = 1:length(grids_fmap)
 end 
 
 
-%% [4] analyse resulting Grids binned --> grid scale too large to split bins for at least first 30 PCs
+%% analyse resulting Grids binned --> grid scale too large to split bins for at least first 30 PCs
 % set limits for dividing environment into 9 subregions
 x_lims = [1, dim_x/3; dim_x/3, 2*(dim_x/3); 2*(dim_x/3), dim_x-1]; % X-axis limits for sub-regions
 y_lims = [1, dim_y/3; dim_y/3, 2*(dim_y/3); 2*(dim_y/3), dim_y-1]; % Y-axis limits for sub-regions
@@ -220,35 +260,4 @@ for GC_PC = 28:length(grids_fmap)
         end
     end
 end
-
-%% Looking across multiple iterations of data 
-% Settings: dim_x = 300; dim_y = 250; n_cells = 2000; n_steps = 500000; speed = 10;
-results = zeros(n_cells, NumberOfPC, n_iter);
-subfolders = dir(fullfile(main_folder, 'results_iter_*'));
-metrics.gridness = zeros(1, 10);
-metrics.gridness = zeros(1, 10);
-metrics.gridness = zeros(1, 10);
-metrics.gridness = zeros(1, 10);
-
-for iter = 1:n_iter
-
-    % [1] load 
-    subfolder_path = fullfile(main_folder, ['results_iter_', num2str(iter)]);
-    file_path = fullfile(subfolder_path, ['results', num2str(iter), '.mat']);
-    data = load(file_path);
-    
-    
-    % [2] look at grid metrics for each 
-    for PC = 1:NumberOfPC
-        map_NN = comb_fields(data.format_1, data.PC_NN(:,PC));
-        map_S  = comb_fields(data.format_1, data.PC_Standard(:,PC));
-        map = data.PC_NN(:,PC);
-        sac = xPearson(map);
-        % Pass sac to autoCorrProps
-        in.sac = sac;
-        in.PLOT_ON = true; hold on;
-        in.PLOT_Ellipse_ON = true;
-        metrics = autoCorrProps(in); % should be one with EM comments, which has added ellipse function
-    end
-
 
