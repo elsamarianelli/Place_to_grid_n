@@ -80,4 +80,3 @@ xticklabels({'square uniform','square tanni', 'hex uniform', 'hex tanni'});
 hold on;
 ylabel('Percentage of Values > Threshold');
 title(sprintf('Percentage of Expanded Gridness Values Over %.2f', threshold));
-legend()

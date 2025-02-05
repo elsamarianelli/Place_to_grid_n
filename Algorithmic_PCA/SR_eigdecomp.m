@@ -11,18 +11,20 @@ dim_x = 351;
 dim_y = 252;
 n_polys = 1;
 polys = cell(n_polys, 1);
-polys{1} = [0 0, 349, 0, 349 250, 0 250, 0 0] + 2; 
+polys{1} = [0 0, 349 0, 349 250, 0 250, 0 0] + 2; % rectangular, change for warped trapezoid
+% warp = 20
+% polys{1} = [0 0, 349 0+warp, 349 250-warp, 0 250, 0 0] + 2
 n_cells = 200;
-n_steps = 36000;
-output_dir = 'results_grid_maps_rect'; 
-n_iterations = 1; 
+n_steps = 360000;
+output_dir = 'results_grid_maps_rect_2'; 
+n_iterations = 10; 
 
 % Create the directory if it doesn't exist
 if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
 
-for iter =1:n_iterations
+for iter = 1:n_iterations
 
     % Create a subfolder for this iteration
     subfolder = fullfile(output_dir, sprintf('iteration_%.1f', iter));
@@ -37,7 +39,7 @@ for iter =1:n_iterations
     env = GenerateEnv(polys, dim_x, dim_y, 'trapezoid');
     
     % [2] Generating Trajectory
-    fprintf('  Step 2/8: Generating Trajectory\n');
+    fprintf('  Step 2/8: Generating Trajectory\n'); % hasselmo version
     traj = generate_trajectory(env, n_steps);
     
     % [3] Populating Place Cells
@@ -45,7 +47,7 @@ for iter =1:n_iterations
     [PlaceCellsUni, PlaceCellsTanni, env] = generate_place_cells(env, n_cells, dim_x, dim_y, 2, 'random');
     
     % Save place cells to the subfolder
-    place_cells_file = fullfile(subfolder, sprintf('place_cells_iter_%d.mat', iter));
+    place_cells_file = fullfile(subfolder, sprintf('orig_place_cells'));
     save(place_cells_file, 'PlaceCellsUni', 'PlaceCellsTanni');
     
     % [4] Training SR Matrix
@@ -66,14 +68,14 @@ for iter =1:n_iterations
 
     % Recalculate place and grid cells based on the trained model
     cells_U = getPlace(PlaceCellsUni, M_U, env);
-    cells_U = getGrid(cells_U, M_U, env, 'off'); % off/on for non-negativity constraint 
+    cells_U = getGrid(cells_U, M_U, env, 'off'); % only have as off 
     cells_T = getPlace(PlaceCellsTanni, M_T, env);
     cells_T = getGrid(cells_T, M_T, env, 'off'); 
-  
+
     % [6] Saving Grid and Place cells
     fprintf('Step 6/8: Save\n')
     % Save grid cells to the subfolder
-    SR_cells_file = fullfile(subfolder, sprintf('grid_place_cells_SR_iter_%d.mat', iter));
+    SR_cells_file = fullfile(subfolder, sprintf('grid_place_cells_SR'));
     save(SR_cells_file, 'cells_U', 'cells_T');
   
 end

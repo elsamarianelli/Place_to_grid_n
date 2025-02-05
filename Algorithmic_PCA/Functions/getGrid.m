@@ -22,7 +22,7 @@ if strcmp(nn, 'off')
     [V, ~] = eig(M);
 else   
     % non negative eigen decomp/PCA methods    
-    V = NNPCA2014(M, 200);
+    % V = NNPCA2014(M, 200);
     % [W, H] = nnmf(M, 10);
     % [V] = nonNegativeEig(M, 200);
 end
@@ -39,7 +39,8 @@ for i = 1:length(cells)
     
     % Sum place cell inputs weighted by the eigenvector components
     for j = 1:length(cells)
-        grid_map = grid_map + ev(j) * cells{j}.fmap;
+        cells{j}.fmap(isnan(cells{j}.fmap)) = 0; % IGNORE NANS to get ride of tanni bug
+        grid_map = grid_map + ev(j) * (cells{j}.fmap);
     end
     
     % Normalize the grid map to a maximum value of 1
@@ -56,5 +57,7 @@ for i = 1:length(cells)
     
     % Store the computed grid map in the cell structure
     cells{i}.grid = grid_map;
+    
 end
+
 end

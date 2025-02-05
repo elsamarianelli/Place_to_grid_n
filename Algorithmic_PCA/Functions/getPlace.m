@@ -24,6 +24,7 @@ for i = 1:length(cells)
     place_map = imgaussfilt(place_map,smth_sig)./ imgaussfilt(1*(env.L==2),smth_sig);
     place_map(env.L <= 1) = NaN;
     cells{i}.place = place_map./max(place_map(:));
+
 end
 
 

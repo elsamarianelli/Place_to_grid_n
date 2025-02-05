@@ -49,7 +49,7 @@ if ~isfolder(main_folder)
     mkdir(main_folder);
 end
 
-n_iter = 1;
+n_iter = 10;
 
 for iter = 1:n_iter  
     
@@ -62,26 +62,26 @@ for iter = 1:n_iter
     
     % Generating Trajectory
     % [a] Hasselmo trajectory - turns away from boundaries, velocity is altered
-    % traj = generate_trajectory(env, n_steps);
+    traj = generate_trajectory(env, n_steps);
     
     % [b] OR simpler random walk trajectory (ken's)
-    steps = (cumsum(randn(n_steps,2))*speed)+1;
-    x = ceil(mod(steps(:,1),dim_x)); 
-    y = ceil(mod(steps(:,2),dim_y)); 
-    traj = [x,y];
+    % steps = (cumsum(randn(n_steps,2))*speed)+1;
+    % x = ceil(mod(steps(:,1),dim_x)); 
+    % y = ceil(mod(steps(:,2),dim_y)); 
+    % traj = [x,y];
     
     % Populating Place Cells
-    distribution_type = 'array'; 
+    distribution_type = 'random'; 
     [PlaceCellsUni, PlaceCellsTanni, env, xy_field_u, xy_field_t] = ...
         generate_place_cells(env, n_cells, dim_x, dim_y, 2, distribution_type);
     
     % options for periodic boundaries with PC fr wrapping around
     size_control = 7; % bigger for smaller PC firing fields
-    boundary_warping = 1;
+    boundary_warping = 0;
     ToroidalPlaceCellMaps = get_PCs_toroidal(env, n_cells, xy_field_u, size_control, boundary_warping); 
     
     % put into formats needed for PCA functions and plotting 
-    [format_1, format_2] = reformat_firing_maps(ToroidalPlaceCellMaps, traj);
+    [format_1, format_2] = reformat_firing_maps(PlaceCellsUni, traj);
     
     % % visualise
     % figure(1); subplot(1,2,1); plot(xy_field_u(:,1), xy_field_u(:,2),'.'); hold on;
@@ -135,129 +135,129 @@ for iter = 1:n_iter
 
 end
 
-%% Looking across multiple iterations of data 
-% Settings: dim_x = 300; dim_y = 250; n_cells = 2000; n_steps = 500000; speed = 10;
-subfolders = dir(fullfile(main_folder, 'results_iter_*'));
-result_metrics = cell(n_iter, 1);
-
-for iter = 1:n_iter
-
-    % [1] load 
-    subfolder_path = fullfile(main_folder, ['results_iter_', num2str(iter)]);
-    file_path = fullfile(subfolder_path, ['results', num2str(iter), '.mat']);
-    data = load(file_path);
-    
-    % [2] generate grid metrics for each reprojected principle component
-    for PC = 1:NumberOfPC
-
-        disp(PC)
-
-        % reproject each PC into 2d space for non negative nd standard
-        % conditions
-        map_NN = comb_fields(data.format_1, data.PC_NN(:,PC));
-        map_S  = comb_fields(data.format_1, data.PC_Standard(:,PC));
-        map = data.PC_NN(:,PC);
-        sac = xPearson(map);
-
-        % Pass sac to autoCorrProps to get metrics (not binned as scales
-        % too small)
-        in.sac = sac;
-        in.PLOT_ON = false; hold on;
-        in.PLOT_Ellipse_ON = false;
-        metrics = autoCorrProps(in); % should be one with EM comments which has ellipse function
-
-        % save
-        result_metrics(n_iter) = metrics;
-
-    end
-
-end
-
-
-%% for single iteration....
-%% project the eigenvectors back to real world
-% first take a column of v and multiply it by the place fields from the OG
-% data to make the grid cell representation
- 
-PC = PC_NN; % switch from PC_Standard
-
-figure; % GC firing
-for ii = 1:NumberOfPC
-    subplot(5,NumberOfPC/5,ii)
-    map = comb_fields(format_1, PC(:,ii));
-    imagesc(map)
-    colormap jet
-    drawnow
-end
-
-grids_fmap = cell(NumberOfPC, 1);
-grids_sac = cell(NumberOfPC, 1);
-
-figure; % sac
-for iii = 1:NumberOfPC
-    subplot(5,NumberOfPC/5,iii)
-    map = comb_fields(format_1, PC(:,iii));
-    grids_fmap{iii}.map = map;
-    cross_corr = xPearson(map);
-    grids_sac{iii}.sac = cross_corr;
-    imagesc(cross_corr); 
-    colormap jet
-    drawnow
-end
-
-%% analyse resulting Grids (not binned)
-% addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/GridAnalysis/'
-% addpath '/Users/elsamarianelli/Documents/GitHub/boundary_warped_place2grid/Misc'
-% addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/Miscellaneous/'
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\analysis-matlab-master\GridAnalysis'
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\analysis-matlab-master\Miscellaneous'
-figure;
-grid_metrics = cell(n_cells, 1);
-% Loop over j (vertical) and k (horizontal)
-for GC_PC = 1:length(grids_fmap)
-    try
-        subplot(5,NumberOfPC/5,GC_PC)
-        sac = xPearson(grids_fmap{GC_PC}.map);
-        % Pass sac to autoCorrProps
-        in.sac = sac;
-        in.PLOT_ON = true; hold on;
-        in.PLOT_Ellipse_ON = true;
-        metrics = autoCorrProps(in); % should be one with EM comments, which has added ellipse function
-        grid_metrics{GC_PC} = metrics;
-    catch
-        fprintf(strcat('error ', num2str(GC_PC)));
-    end
-end 
-
-
-%% analyse resulting Grids binned --> grid scale too large to split bins for at least first 30 PCs
-% set limits for dividing environment into 9 subregions
-x_lims = [1, dim_x/3; dim_x/3, 2*(dim_x/3); 2*(dim_x/3), dim_x-1]; % X-axis limits for sub-regions
-y_lims = [1, dim_y/3; dim_y/3, 2*(dim_y/3); 2*(dim_y/3), dim_y-1]; % Y-axis limits for sub-regions
-grid_metrics_binned = cell(NumberOfPC, 3, 3);
-figure;
-j_l = 0:3:6;
-% Loop over j (vertical) and k (horizontal)
-for GC_PC = 28:length(grids_fmap)
-    figure;
-    tiledlayout(3, 3, 'TileSpacing','compact', 'Padding','tight')
-    for j = 1:3
-        for k = 1:3
-            try
-                nexttile
-                % imagesc(grids_fmap{GC_PC}.map(y_lims(j, 1):y_lims(j, 2), x_lims(k, 1):x_lims(k, 2)))
-                % disp((j_l(j) + (k)))
-                sac = xPearson(grids_fmap{GC_PC}.map(y_lims(j, 1):y_lims(j, 2), x_lims(k, 1):x_lims(k, 2)));
-                % Pass sac to autoCorrProps
-                in.sac = sac;
-                in.PLOT_ON = true; hold on;
-                in.PLOT_Ellipse_ON = true;
-                metrics = autoCorrProps(in);
-                grid_metrics_binned{GC_PC, j, k} = metrics;
-            catch
-                fprintf('error...\n')
-            end           
-        end
-    end
-end
-
+% %% Looking across multiple iterations of data 
+% % Settings: dim_x = 300; dim_y = 250; n_cells = 2000; n_steps = 500000; speed = 10;
+% subfolders = dir(fullfile(main_folder, 'results_iter_*'));
+% result_metrics = cell(n_iter, 1);
+% 
+% for iter = 1:n_iter
+% 
+%     % [1] load 
+%     subfolder_path = fullfile(main_folder, ['results_iter_', num2str(iter)]);
+%     file_path = fullfile(subfolder_path, ['results', num2str(iter), '.mat']);
+%     data = load(file_path);
+% 
+%     % [2] generate grid metrics for each reprojected principle component
+%     for PC = 1:NumberOfPC
+% 
+%         disp(PC)
+% 
+%         % reproject each PC into 2d space for non negative nd standard
+%         % conditions
+%         map_NN = comb_fields(data.format_1, data.PC_NN(:,PC));
+%         map_S  = comb_fields(data.format_1, data.PC_Standard(:,PC));
+%         map = data.PC_NN(:,PC);
+%         sac = xPearson(map);
+% 
+%         % Pass sac to autoCorrProps to get metrics (not binned as scales
+%         % too small)
+%         in.sac = sac;
+%         in.PLOT_ON = false; hold on;
+%         in.PLOT_Ellipse_ON = false;
+%         metrics = autoCorrProps(in); % should be one with EM comments which has ellipse function
+% 
+%         % save
+%         result_metrics(n_iter) = metrics;
+% 
+%     end
+% 
+% end
+% 
+% 
+% %% for single iteration....
+% %% project the eigenvectors back to real world
+% % first take a column of v and multiply it by the place fields from the OG
+% % data to make the grid cell representation
+% 
+% PC = PC_NN; % switch from PC_Standard
+% format_1 = data.format_1;
+% figure; % GC firing
+% for ii = 1:NumberOfPC
+%     subplot(5,NumberOfPC/5,ii)
+%     map = comb_fields(format_1, PC(:,ii));
+%     imagesc(map)
+%     colormap jet
+%     drawnow
+% end
+% 
+% grids_fmap = cell(NumberOfPC, 1);
+% grids_sac = cell(NumberOfPC, 1);
+% 
+% figure; % sac
+% for iii = 1:NumberOfPC
+%     subplot(5,NumberOfPC/5,iii)
+%     map = comb_fields(format_1, PC(:,iii));
+%     grids_fmap{iii}.map = map;
+%     cross_corr = xPearson(map);
+%     grids_sac{iii}.sac = cross_corr;
+%     imagesc(cross_corr); 
+%     colormap jet
+%     drawnow
+% end
+% 
+% %% analyse resulting Grids (not binned)
+% % addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/GridAnalysis/'
+% % addpath '/Users/elsamarianelli/Documents/GitHub/boundary_warped_place2grid/Misc'
+% % addpath '/Users/elsamarianelli/GitHub/boundary_warped_place2grid/analysis-matlab-master/Miscellaneous/'
+% addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\analysis-matlab-master\GridAnalysis'
+% addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\analysis-matlab-master\Miscellaneous'
+% figure;
+% grid_metrics = cell(n_cells, 1);
+% % Loop over j (vertical) and k (horizontal)
+% for GC_PC = 1:length(grids_fmap)
+%     try
+%         subplot(5,NumberOfPC/5,GC_PC)
+%         sac = xPearson(grids_fmap{GC_PC}.map);
+%         % Pass sac to autoCorrProps
+%         in.sac = sac;
+%         in.PLOT_ON = true; hold on;
+%         in.PLOT_Ellipse_ON = true;
+%         metrics = autoCorrProps(in); % should be one with EM comments, which has added ellipse function
+%         grid_metrics{GC_PC} = metrics;
+%     catch
+%         fprintf(strcat('error ', num2str(GC_PC)));
+%     end
+% end 
+% 
+% 
+% %% analyse resulting Grids binned --> grid scale too large to split bins for at least first 30 PCs
+% % set limits for dividing environment into 9 subregions
+% x_lims = [1, dim_x/3; dim_x/3, 2*(dim_x/3); 2*(dim_x/3), dim_x-1]; % X-axis limits for sub-regions
+% y_lims = [1, dim_y/3; dim_y/3, 2*(dim_y/3); 2*(dim_y/3), dim_y-1]; % Y-axis limits for sub-regions
+% grid_metrics_binned = cell(NumberOfPC, 3, 3);
+% figure;
+% j_l = 0:3:6;
+% % Loop over j (vertical) and k (horizontal)
+% for GC_PC = 28:length(grids_fmap)
+%     figure;
+%     tiledlayout(3, 3, 'TileSpacing','compact', 'Padding','tight')
+%     for j = 1:3
+%         for k = 1:3
+%             try
+%                 nexttile
+%                 % imagesc(grids_fmap{GC_PC}.map(y_lims(j, 1):y_lims(j, 2), x_lims(k, 1):x_lims(k, 2)))
+%                 % disp((j_l(j) + (k)))
+%                 sac = xPearson(grids_fmap{GC_PC}.map(y_lims(j, 1):y_lims(j, 2), x_lims(k, 1):x_lims(k, 2)));
+%                 % Pass sac to autoCorrProps
+%                 in.sac = sac;
+%                 in.PLOT_ON = true; hold on;
+%                 in.PLOT_Ellipse_ON = true;
+%                 metrics = autoCorrProps(in);
+%                 grid_metrics_binned{GC_PC, j, k} = metrics;
+%             catch
+%                 fprintf('error...\n')
+%             end           
+%         end
+%     end
+% end
+% 

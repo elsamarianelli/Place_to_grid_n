@@ -355,7 +355,7 @@ defaults.GET_ORIENTATION = true;
 defaults.GET_MEAN_R_AND_SCALE = true;
 defaults.FULL_GRIDNESS_RANGE = false;
 defaults.FIELD_EXTENT_METHOD = 2;
-defaults.PLOT_ON = false;
+defaults.PLOT_ON = true;
 defaults.PLOT_Ellipse_ON = true; % EM
 
 VERSION = 1.03;
