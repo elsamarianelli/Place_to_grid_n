@@ -1,0 +1,84 @@
+%% code to look at real grid data
+addpath("real_data")
+addpath("analysis-matlab\LoadData\")
+addpath("analysis-matlab\Miscellaneous\")
+addpath("analysis-matlab\GridAnalysis\")
+
+% [1] load data
+% sample data from dan 
+
+in = load_trial;
+in.data_path = 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\real_data_analysis';
+in.flnmroot = '20140917_R2192_screening';
+in.cutSuffix = '_';
+in.GET_TRODES = 1:8;
+trial = load_trial(in);
+
+% [2] get gridness scores from ALL tetrodes and cells and plot those with 
+% gridness above  over 95th percentile of shuffled gridness data
+
+numTetrodes = length(trial.spikeData);
+gridnessScores = {}; 
+threshold_score = {}; 
+above = {};
+for t = 1:numTetrodes
+
+    sp = trial.spikeData(t);
+    uniqueCells = unique(sp.cut); % Get unique cell IDs
+    
+    if ~isempty(uniqueCells) & ~all(uniqueCells==0)
+        for c = uniqueCells(2:end)'
+            
+            % Extract spike timestamps for the given cell
+            in.spikeTS = sp.timestamp(sp.cut == c);
+            in.spikePosInd = sp.pos_sample(sp.cut == c);
+            
+            % Position and shuffle parameters
+            in.posXY = trial.posData.xy;
+            in.MAP_TYPE = 'rate';
+            in.SHUFFLES = 1000; 
+            in.psr = trial.posData.sample_rate; % pos sample rate
+            in.PLOT_ON = false;
+            in.autocorr_in.PLOT_ON = false;
+            in.SMOOTHING = 5; % boxcar width in bins for smoothing
+
+            % Compute shuffled gridness score
+            ret = shuffledGridness(in);
+         
+            % Compute the 95th percentile threshold
+            shuffled_values = ret.gridnessShuffles; 
+            threshold = prctile(shuffled_values, 90);
+            
+            % Store results in a structured format
+            gridnessScores{t, c} = ret.gridness;
+            threshold_score{t,c} = threshold;
+            above{t, c} = ret.gridness > threshold;
+
+            % display tetrode and cell 
+            disp(['Checking gridness for: tetrode ', num2str(t), ', cell ', num2str(c)]);
+
+            % plot if the gridness is above threshold
+            if (ret.gridness > threshold) && (ret.gridness>0.5)
+                stats = get_figure_and_stats(trial, t, c, in);
+            end
+
+        end
+    else 
+        continue        
+    end
+end
+
+% [3] plotting for cells with gridness above 90% threshold
+
+% Create a logical mask where the cells contain 1
+mask = cellfun(@(x) isequal(x, 1), above);
+% Find row and column indices
+[t, c] = find(mask);
+indices = [t, c];
+for i = 1:size(indices,1)
+    t = indices(i, 1); 
+    c = indices(i, 2);
+    in.SMOOTHING = 5;
+    stats = get_figure_and_stats(trial, t, c, in);
+end
+
