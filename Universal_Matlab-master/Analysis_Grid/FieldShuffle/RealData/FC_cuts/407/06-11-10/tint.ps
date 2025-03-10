@@ -1,0 +1,32 @@
+%!
+%%BoundingBox: 0 0 526 750
+%%EndComments
+ 25 550 translate
+ 1.0 1.0 scale
+/choose-font
+{
+ findfont
+ exch scalefont
+ setfont
+ newpath
+ 0 0 moveto () true charpath flattenpath pathbbox
+ /top exch def pop
+ /bottom exch def pop
+ bottom top bottom top add 2 div
+ /center-font-val exch def
+ /upper-font-val exch def
+ /lower-font-val exch def
+} def
+%
+ /just-string
+{
+ pop lower-font-val sub
+ moveto show
+} def
+%
+% Main body begins
+%
+ 18 /Times-Roman choose-font
+
+
+ showpage

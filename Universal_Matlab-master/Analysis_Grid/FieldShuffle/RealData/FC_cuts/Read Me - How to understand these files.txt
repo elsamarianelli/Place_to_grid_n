@@ -1,0 +1,1 @@
+These are a the cuts that Francesca made of my data for the baby rat paper. Mixed in with her cuts (which I think all have the extension fin.cut. The spreadsheet contains a column 'fincut' the specifies if Francesca cut that trial, the column that follows 'tet' specifies which tetrodes she cut.	

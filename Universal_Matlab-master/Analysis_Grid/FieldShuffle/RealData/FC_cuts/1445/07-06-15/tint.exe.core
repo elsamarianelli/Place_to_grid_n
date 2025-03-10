@@ -1,0 +1,23 @@
+[main] tint 1001 (0) exception: trapped!
+[main] tint 1001 (0) exception: code 0xC0000005 at 0x47C30F
+[main] tint 1001 (0) exception: ax 0x0 bx 0x5282F4 cx 0xA2D8C38 dx 0x4A7D0A01
+[main] tint 1001 (0) exception: si 0x0 di 0x258F8F4 bp 0x258F8B0 sp 0x258F8A4
+[main] tint 1001 (0) exception: exception is: STATUS_ACCESS_VIOLATION
+[main] tint 1001 (0) stack: Stack trace:
+[main] tint 1001 (0) stack: frame 0: sp = 0x258F494, pc = 0x6100A2C3
+[main] tint 1001 (0) stack: frame 1: sp = 0x258F4D0, pc = 0x7C9032A8
+[main] tint 1001 (0) stack: frame 2: sp = 0x258F4F4, pc = 0x7C90327A
+[main] tint 1001 (0) stack: frame 3: sp = 0x258F5A4, pc = 0x7C90E48A
+[main] tint 1001 (0) stack: frame 4: sp = 0x258F8B0, pc = 0x45B6E3
+[main] tint 1001 (0) stack: frame 5: sp = 0x258F8E4, pc = 0x4BA50F
+[main] tint 1001 (0) stack: frame 6: sp = 0x258F924, pc = 0x4C48D6
+[main] tint 1001 (0) stack: frame 7: sp = 0x258F984, pc = 0x45429E
+[main] tint 1001 (0) stack: frame 8: sp = 0x258F9B4, pc = 0x40A07E
+[main] tint 1001 (0) stack: frame 9: sp = 0x258FA58, pc = 0x49F35A
+[main] tint 1001 (0) stack: frame 10: sp = 0x258FA94, pc = 0x49F271
+[main] tint 1001 (0) stack: frame 11: sp = 0x258FAD4, pc = 0x4A0D13
+[main] tint 1001 (0) stack: frame 12: sp = 0x258FAF8, pc = 0x4A0C48
+[main] tint 1001 (0) stack: frame 13: sp = 0x258FB18, pc = 0x468BE5
+[main] tint 1001 (0) stack: frame 14: sp = 0x258FBD8, pc = 0x4A6F09
+[main] tint 1001 (0) stack: frame 15: sp = 0x258FC00, pc = 0x4A6F2E
+[main] tint 1001 (0) stack: End of stack trace (more stack frames may be present)

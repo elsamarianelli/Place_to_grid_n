@@ -1,64 +1,58 @@
-function [xy_field, env, bin_prob]= getPlaceFieldCentres(env, n_cells, dim_x, dim_y, boundary_effect)
-    % Calculate the minimum distance to walls in both x and y directions
+function [xy_field, env, bin_prob] = getPlaceFieldCentres(env, n_cells, dim_x, dim_y, boundary_effect)
+    % Identify wall locations
+    wall_mask = (env.L == 0);
 
-    x_dists = env.L == 0; % Identify wall locations
-    x_dists([2, dim_x], :) = 0; % Set boundary rows to zero
-    x_dists = bwdist(x_dists); % Compute distance to the nearest wall in x direction
-    
-    y_dists = env.L == 0; % Identify wall locations
-    y_dists(:, [2, dim_y]) = 0; % Set boundary columns to zero
-    y_dists = bwdist(y_dists); % Compute distance to the nearest wall in y direction
-    
-    xy_dist = env.dwmap; % Distance to walls (combined distance map)
-    
-    % Set distances outside the defined environment to NaN
-    x_dists(env.L ~= 2) = NaN;
-    y_dists(env.L ~= 2) = NaN;
+    % Compute Euclidean distance to the nearest wall (single shortest distance)
+    xy_dist = bwdist(wall_mask);
+
+    % Ensure distances outside the defined environment are NaN
     xy_dist(env.L ~= 2) = NaN;
-    
-    % Store the calculated distances in the environment structure
-    env.x_dists = x_dists;
-    env.y_dists = y_dists;
-    
-    % Calculate sampling weights for field centers (based on inverse distance)
+
+    % Store calculated distances in the environment structure
+    env.xy_dist = xy_dist; % Store full distance map
+
+    % Compute sampling weights using inverse shortest distance (no separate x/y weighting)
     poss_id = find(~isnan(xy_dist)); % Identify valid locations
-    bin_prob = (xy_dist).^(-1/boundary_effect); % Inverse distance weighting
+    bin_prob = (xy_dist).^(-1/boundary_effect); % Inverse distance weighting (closer = higher probability)
+    
+    % Normalize the probability weights
+    bin_prob = bin_prob / max(bin_prob(:)); 
     id_prob = bin_prob(poss_id); % Get probabilities for sampling
-    
-    % Sample field center locations based on the calculated probabilities
+
+    % Sample place field center locations based on corrected probabilities
     id_field = randsample(poss_id, n_cells, true, id_prob);
-    [x_field, y_field] = ind2sub(size(x_dists), id_field); % Convert to subscripts
-    xy_field = [x_field, y_field]; % Store field centers
-    
-    % order place fields for visualisation 
-    % put cells next to each other
+    [x_field, y_field] = ind2sub(size(xy_dist), id_field);
+    xy_field = [x_field, y_field];
+
+    % Order place fields for visualization
     num_coords = size(xy_field, 1);
     sorted_coords = zeros(num_coords, 2);
     current_index = 1;
     sorted_coords(1, :) = xy_field(current_index, :);
     visited = false(num_coords, 1);
     visited(current_index) = true;
-    
-    % Resort the coordinates so they are ordered to be close to each other -
-    % for visualising covar matrix
+
+    % Resort the coordinates so they are ordered to be close to each other
     for i = 2:num_coords
         % Calculate distances from the current point to all unvisited points
         dists = sqrt(sum((xy_field(~visited, :) - xy_field(current_index, :)).^2, 2));
-        
+
         % Get the indices of unvisited points
         unvisited_indices = find(~visited);
-        
+
         % Find the index of the closest unvisited point
         [~, min_idx] = min(dists);
         next_index = unvisited_indices(min_idx);
-        
+
         % Update the sorted coordinates and mark the point as visited
         sorted_coords(i, :) = xy_field(next_index, :);
         visited(next_index) = true;
-        
+
         % Move to the next point
         current_index = next_index;
     end
-    
+
     xy_field = sorted_coords;
 end
+% figure; plot(xy_field(:,1), xy_field(:,2),'.')
+

@@ -1,0 +1,22 @@
+44507101
+
+t1 nothing
+t2 cells, no GCs
+t3 nothing
+t4 2 GCs, cell 1, cell 2
+
+44507102
+
+t4 c1, c2
+
+44507103
+
+t4 c1 (hard to cut), c2
+
+44507104
+
+t4 c2 (couldn't separate c1 from c2)
+
+44507105
+
+t4 c2

@@ -1,0 +1,18 @@
+This file contains the dimensions of the envir.
+as the coordinates of the diag. vertices in
+fields window as (x,y) pairs, (0,0)=top left
+(512,512)=bottom right. This file
+can be generated or changed by tint or by hand.
+Using format:
+
+width_mm:  865
+height_mm: 884
+
+n_vertices: 2
+vertex: 16 16
+vertex: 376 384
+
+width_pix:  360
+height_pix: 368
+height/width: 1.022222
+width/height: 0.978261
