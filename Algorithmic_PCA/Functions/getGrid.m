@@ -57,7 +57,6 @@ for i = 1:length(cells)
     
     % Store the computed grid map in the cell structure
     cells{i}.grid = grid_map;
-    
 end
 
 end
