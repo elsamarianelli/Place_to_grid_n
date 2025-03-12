@@ -19,3 +19,5 @@ NeuralNet_PCA > Hebbian_NN : Neural Network implementation of PCA, using Ojas ru
 Plotting : Some Grid Firing field properties (generated using both algorithmic and Neural Network implementations of Non-negative PCA) are compared, using uniformly distributed Place Cells and Place cells which are more densly distributed and have narower firing fields as a function of their distance to environmental boundaries. 
 Gridness (square and hexagonal), grid spacing, orientation, and potential shearing of resulting grid fields are assessed, across boundary and central regions of the environments.
 
+VISUAL GUIDE TO HOW LITERATURE RELATES...
+![image](https://github.com/user-attachments/assets/fcc18874-cf01-480d-87f7-f9e632d313a6)
