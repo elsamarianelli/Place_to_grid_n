@@ -1,6 +1,7 @@
 %% Generate and save Grid maps 
 %  generated from doing PCA on SR Matrix learnt through TDLM during random foraging with 
 %  place cell firing as successor features. 
+
 addpath('/Users/elsamarianelli/Documents/GitHub')
 addpath('/Users/elsamarianelli/Documents/GitHub/bound_warped_grids_new/Algorithmic_PCA/Functions/')
 addpath('/Users/elsamarianelli/Documents/GitHub/bound_warped_grids_new/General_functions/')
@@ -19,17 +20,21 @@ n_steps = 360000;
 output_dir = 'results_grid_maps_rect_2'; 
 n_iterations = 10; 
 
-% alternative is to use real trajectories and boundaries from rodent behavioural data...
-data_folder = 'C:\Users\Elsa Marianelli\Desktop\Rodent_Data';
-[trajectories, bounds] = get_real_traj(data_folder);
-% plot a sample trajectory 
-traj = trajectories{2}; 
-plot(traj(:,1), traj(:,2), '.');
+% % alternative is to use real trajectories and boundaries from rodent behavioural data...
+% data_folder = 'C:\Users\Elsa Marianelli\Desktop\Rodent_Data';
+% [trajectories, bounds] = get_real_traj(data_folder);
+% % plot a sample trajectory 
+% traj = trajectories{2}; 
+% plot(traj(:,1), traj(:,2), '.');
 
 % Create the directory if it doesn't exist
 if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
+
+% [1] Generating Environment - the same for all iterations
+fprintf('  Step 1/8: Generating Environment\n');
+env = GenerateEnv(polys, dim_x, dim_y, 'trapezoid');
 
 for iter = 1:n_iterations
 
@@ -40,23 +45,20 @@ for iter = 1:n_iterations
     end
 
     fprintf('  Iteration %d/%d\n', iter, n_iterations);
-    
-    % [1] Generating Environment
-    fprintf('  Step 1/8: Generating Environment\n');
-    env = GenerateEnv(polys, dim_x, dim_y, 'trapezoid');
 
-    % [2] Generating Trajectory
+    % [2] Get random trajectory from premade trajs
     fprintf('  Step 2/8: Generating Trajectory\n'); % hasselmo version
-    traj = generate_trajectory(env, n_steps);
-    
+    traj = load_premade_traj(iter);
+
     % [] alternatively take real trajectory and use that environment ^^
     % [3] Populating Place Cells
     fprintf('  Step 3/8: Populating Place Cells\n');
     [PlaceCellsUni, PlaceCellsTanni, env] = generate_place_cells(env, n_cells, dim_x, dim_y, 2, 'random');
-    for i = 1:5:250
-        figure; 
-        imagesc(PlaceCellsTanni{i}.fmap); title(i)
-    end
+    % for i = 1:5:250
+    %     figure; 
+    %     imagesc(PlaceCellsTanni{i}.fmap); title(i)
+    % end
+
     % Save place cells to the subfolder
     place_cells_file = fullfile(subfolder, sprintf('orig_place_cells'));
     save(place_cells_file, 'PlaceCellsUni', 'PlaceCellsTanni');
@@ -91,6 +93,7 @@ for iter = 1:n_iterations
          
 
 end
+
 
 %% plotting figure 1 - Place cells in environment, trajectory, example place cells, and trained SR matrics 
 % all with uniform place cells
