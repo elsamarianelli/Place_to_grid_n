@@ -1,4 +1,4 @@
-function [ stGrd, expGrd, scale ] = multiGridness( sac, shape )
+function [ stGrd, expGrd, scale ] = multiGridness( sac, shape, plotting, map )
 %MULTIGRIDNESS Returns standard & expanding annulus version of gridness. NB
 %can be combined with code that corrects for eliptical distortion in SAC.
 %
@@ -142,6 +142,20 @@ if outerRadi>maxAllowRadi, outerRadi=maxAllowRadi; end
 %Create a circular mask using the radi identified excluding central field
 gridnessMask    =centreRadi<=outerRadi & ~(lableMask==closestPeaks(1));
 
+% % % Plot SAC and Gridness Mask with Transparency
+% figure; 
+% subplot(1, 2,1);
+% imagesc(sac); 
+% hold on;
+% h = imagesc(gridnessMask);  
+% h.AlphaData = 0.3;  % Set transparency
+% title('SAC with Annulus Mask');
+% axis off; 
+% subplot(1, 2,2);
+% imagesc(lableMask);
+% title('Peak masks');
+% axis off; 
+% % sgtitle('Gridness Visualization');
 
 selA            =sac(gridnessMask);
 isValidA        =(~isnan(selA) & ~isinf(selA)); %values from selA that are a real num
@@ -175,7 +189,6 @@ elseif strcmp(shape, 'square')
     stGrd           =min(rotatedCorr([1, 2])) - max(rotatedCorr([3, 4])); 
 end
 
-
 % -- 2) Second do expGrd (i.e. expanding radius gridness)    annulus radius
 % also allowed to be expanded 
 %Taking the definition of this method from Killian (2012). Briefly: define
@@ -198,14 +211,16 @@ end
 
 allCorr         =zeros(nRadi,num);
 rotAmnt         =angles_oi;
+gridnessMasks = nan(size(sac, 1), size(sac, 2), nRadi);
 for k=1:num
     rotSac          =imrotate(sac, rotAmnt(k),'bilinear', 'crop'); %Rotate
     
     for n=1:nRadi
         outerRadi   =outerRadiRange(n);
-        gridnessMask=centreRadi<=outerRadi & centreRadi>=innerRadi;
-        sel         =sac(gridnessMask); %Select annulus from unrotated
-        selRot      =rotSac(gridnessMask); %Select from rotate
+        gridnessMask_e=centreRadi<=outerRadi & centreRadi>=innerRadi;
+        gridnessMasks(:,:,n) = gridnessMask_e;
+        sel         =sac(gridnessMask_e); %Select annulus from unrotated
+        selRot      =rotSac(gridnessMask_e); %Select from rotate
         isValid     =~isnan(sel) & ~isnan(selRot) & ~isinf(sel) & ~isinf(selRot);
         allCorr(n,k)=corr(sel(isValid), selRot(isValid)); %Do Pearson corr
     end
@@ -219,7 +234,40 @@ end
 expGrd          =max(expGrd,[],1); %Max of all radi
 clear innerRadi outerRadiRange nRadi allCorr rotAmnt sel
 
-
+if strcmp(plotting, "plot")
+    figure;
+    tiledlayout(2,4, 'TileSpacing', 'compact', 'Padding', 'compact');
+    
+    nexttile(1); imagesc(map); % [1] fr map
+    axis equal; axis off; title('Firing Rate Map');
+    
+    nexttile(2); imagesc(sac); % [2] sac
+    axis equal; axis off; title('Spatial Autocorrelation (SAC)');
+    
+    nexttile(3); imagesc(lableMask); % [3] peak mask
+    axis equal; axis off;
+    title('Peak Mask (Hexagonal)');
+    
+    nexttile(4); imagesc(sac); hold on; % std gridness annulus
+    h = imagesc(gridnessMask);  
+    h.AlphaData = 0.3;  % Semi-transparent
+    hold on; [x,y] = find(bwperim(gridnessMask)); 
+    plot(y, x, 'k.', 'MarkerSize', 1);    
+    axis equal; axis off; title('Standard Annulus (Hexagonal)');
+    
+    % Expanding Annuli 
+    for i = 1:4
+        nexttile(4 + i); 
+        imagesc(sac); hold on;
+        h = imagesc(gridnessMasks(:,:,i*(floor(size(gridnessMasks, 3)/4))));  
+        h.AlphaData = 0.3;  % Semi-transparent
+        hold on; [x,y] = find(bwperim(gridnessMasks(:,:,i*(floor(size(gridnessMasks, 3)/4))))); 
+        plot(y, x, 'k.', 'MarkerSize', 1);        axis equal; axis off;
+        title(sprintf('Expanding Annulus %d', i));
+    end
+    
+    sgtitle('Gridness Analysis Visualization');
+end
 % -------------------------------------------------------------------------------------------------
 % --- SCALE ----------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------
@@ -227,7 +275,6 @@ clear innerRadi outerRadiRange nRadi allCorr rotAmnt sel
 % 
 closestPeakDistFromCentre = distFromCentre(closestPeaks(2:end));
 scale   =median(closestPeakDistFromCentre);
-
 end
 
 % ----------------------------------------------------------------------------------------

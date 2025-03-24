@@ -21,7 +21,6 @@ for ii = 1:size(maps,3)
     map = map + combo(ii) * maps(:,:,ii); % Weighted sum of maps
 end
 
-inner = map(3:end-2, 3:end-2);  
-map(3:end-2, 3:end-2) = (inner - min(inner(:))) / (max(inner(:)) - min(inner(:)));
-
+% Normalize the final map by the number of maps (incorrect normalization)
+map = map ./ ii;
 end

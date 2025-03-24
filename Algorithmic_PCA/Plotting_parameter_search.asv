@@ -1,0 +1,46 @@
+%% Plotting Parameter search ouput from covariance_eigendecomp.m 
+%   looking at mean and sd across iterations of simplest GC firing field
+%   generation (aka performing standard eigendecomposition on a covariance
+%   matrix of PF firing over pregenerated hasselmo trajectories), for a
+%   variety of parameter settings to see wether they affect gridness
+%   metrics
+
+% -------- 1) SETTINGS --------
+baseName     = 'Tanni_Covar_ED_steps_';   % base folder prefix
+stepsList    = 6000:6000:360000;          % list of steps
+nIterations  = 5;                         % how many iterations per condition
+metricName   = 'expGrd_s';                % metric to extract ('stGrd_s', 'expGrd_h', etc.)
+
+% -------- 2) COLLECT METRIC DATA --------
+allMetrics = cell(length(stepsList), 1);
+
+for s = 1:length(stepsList)
+    stepVal = stepsList(s);
+    stepMetrics = zeros(nIterations, 1);
+
+    for iter = 1:nIterations
+        fname = fullfile([baseName num2str(stepVal)], sprintf('iteration_%.1f', iter), 'metrics_and_maps.mat');
+        if isfile(fname)
+            data = load(fname);
+            gridness_vals = cellfun(@(x) x.(metricName), data.metrics);
+            stepMetrics(iter) = mean(gridness_vals); % or max(gridness_vals) if preferred
+        else
+            warning('Missing file: %s', fname);
+            stepMetrics(iter) = NaN;
+        end
+    end
+
+    allMetrics{s} = stepMetrics;
+end
+
+% -------- 3) COMPUTE MEAN AND SD --------
+means = cellfun(@(x) mean(x, 'omitnan'), allMetrics);
+sds   = cellfun(@(x) std(x, 'omitnan'), allMetrics);
+
+% -------- 4) PLOT --------
+figure;
+errorbar(stepsList, means, sds, '-o', 'LineWidth', 1.5);
+xlabel('Number of Steps');
+ylabel([metricName ' (mean ± SD)']);
+title(['Gridness Metric: ' metricName]);
+grid on;
