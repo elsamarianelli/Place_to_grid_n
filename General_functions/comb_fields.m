@@ -1,7 +1,6 @@
 % COMB_FIELDS Combines multiple spatial maps using a weighted sum.
 % This function takes a set of 2D spatial maps and combines them into a 
 % single map using a weighted sum, then normalizes the result.
-%
 % Inputs:
 %   maps  - A 3D matrix of size [x_dim, y_dim, n_maps], where each slice 
 %           maps(:,:,ii) represents an individual spatial field.

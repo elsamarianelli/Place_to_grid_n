@@ -6,23 +6,33 @@ addpath('/Users/elsamarianelli/Documents/GitHub/bound_warped_grids_new/Algorithm
 addpath('/Users/elsamarianelli/Documents/GitHub/bound_warped_grids_new/General_functions/')
 addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_PCA\Functions'
 addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n'
+addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\General_functions'
 
-% Define environment dimensions and the number of cells
+% Set parameters as used in de cothi code
 In.dim_x = 351;
 In.dim_y = 252;
 In.n_polys = 1;
-polys = cell(n_polys, 1);
+polys = cell(In.n_polys, 1);
 In.polys{1} = [0 0, 349 0, 349 250, 0 250, 0 0] + 2; % rectangular, change for warped trapezoid
 In.n_cells = 200;
 In.n_steps = 360000;
 In.n_iterations = 5; 
 In.NumberOfPC = 200;
+In.bound_ctrl = 2;                     % this bound control mathches what is observed experimentally in de cothi paper
+% n_steps_list = 50000:50000:360000;   % how many stes in trajectory to use
+% n_cells_list = 50:100:250;            % how many place cells as input to covar
+% bound_ctrl_list = .5:1:4.5;            % effect of boundary on place cell
+                                       % distirbution across environemnt
 
-n_steps_list = 0:6000:36000;
+for idx = 2:length(bound_ctrl_list)    % change based on which parmeter is being varied
 
-for idx = 1:5
-    In.n_steps = n_steps_list(idx);
-    output_dir = ['Tanni_Covar_ED', '_steps_', num2str(In.n_steps)];
+    % Reset desired parameter
+    % In.n_steps = n_steps_list(idx);
+    % In.n_cells = n_cells_list(idx);
+    % In.NumberOfPC = n_cells_list(idx);
+    In.bound_ctrl = bound_ctrl_list(idx);
+
+    output_dir = ['Tanni_Covar_ED', '_boundaryEffect_', num2str(In.bound_ctrl)];
     
     % Create the directory if it doesn't exist
     if ~exist(output_dir, 'dir')
@@ -47,18 +57,20 @@ for idx = 1:5
         fprintf('  Step 2/8: Generating Trajectory\n'); % hasselmo version
         traj = load_premade_traj(iter);
         traj = traj(1:In.n_steps, :);
+   
         % [3] Populating Place Cells
         fprintf('  Step 3/8: Populating Place Cells\n');
-        [ PlaceCellsUni, ~, ~] = generate_place_cells(In.env, In.n_cells, In.dim_x, In.dim_y, 2, 'random');
+        [ PlaceCellsUni, PlaceCellsTanni, ~] = generate_place_cells(In.env, In.n_cells, In.dim_x, In.dim_y, In.bound_ctrl , 'random');
        
         % Save place cells to the subfolder
         place_cells_file = fullfile(subfolder, sprintf('orig_place_cells'));
         save(place_cells_file, 'PlaceCellsUni', 'PlaceCellsTanni');
         
-        % [4] Temporal mean xeros Neuron X Time Matrix
+        % [4] Temporal mean xeros Neuron X Time Matrix ---      remember to
+        % switch back to UNIform Place cells ----
         fprintf('  Step 4/8: Neuron X Time Matrix (zero-meaned) \n');
-        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(PlaceCellsUni, traj); % get Matrix of each PCs activity over trajectory
-        NeuronxTimeMat = (NeuronxTimeMat - mean(NeuronxTimeMat, 2));                  % temporal zero meaning 
+        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(PlaceCellsTanni, traj); % get Matrix of each PCs activity over trajectory
+        NeuronxTimeMat = (NeuronxTimeMat - mean(NeuronxTimeMat, 2));                   % temporal zero meaning 
     
         % [5] PCA on covariance matrix
         fprintf('  Step 5/8: Eigenvalue Decomposition on NeuronXNeuron Covariance Matrix\n');
@@ -104,7 +116,7 @@ for idx = 1:5
         fprintf('Step 7/8: Saving\n')
         % Save grid cells to the subfolder
         file = fullfile(subfolder, sprintf('metrics_and_maps.mat'));
-        save(file, 'In', 'metrics')
+        save(file, 'In', 'GC_metrics')
             
     end
 end

@@ -1,58 +1,94 @@
 %% Plotting Parameter search output from covariance_eigendecomp.m 
-%  Shows how different numbers of trajectory steps affect different gridness metrics.
+% Shows how different numbers of trajectory steps affect different gridness metrics.
 
-% -------- 1) SETTINGS --------
-baseName     = 'Tanni_Covar_ED_steps_';
-stepsList    = 6000:6000:30000;
-nIterations  = 5;
+% (1) SETTINGS 
+baseName     = 'param_sweeps\Tanni_Covar_ED_boundaryEffect_';  % Change depending on varied parameter
+settings     = .5:1:4.5;                     % Parameter values used in search
+nIterations  = 5;                            % Number of iterations for each parameter
+metricNames  = {'expGrd_h', 'expGrd_s', 'stGrd_h', 'stGrd_s'};  % List of metrics to plot
+threshold    = 0.5;                          % Threshold for "gridness"
+nPCs         = 200;                          % Number of principal components
 
-% List of metrics to plot
-metricNames = {'stGrd_s',  'stGrd_h'};
-colors = lines(numel(metricNames));  % use distinguishable colors
+% (2) SETUP
+colors = lines(numel(metricNames));          % Color scheme
+meanProps = nan(numel(metricNames), numel(settings));
+stdProps  = nan(numel(metricNames), numel(settings));
 
-% -------- 2) INIT STORAGE --------
-meanVals = zeros(length(stepsList), numel(metricNames));
-stdVals  = zeros(length(stepsList), numel(metricNames));
+% (3) LOOP OVER METRICS
+for m = 1:numel(metricNames)
 
-% -------- 3) MAIN LOOP --------
-for m = 1:length(metricNames)
-    metricName = metricNames{m};
-    allMetrics = cell(length(stepsList), 1);
+    metricName = metricNames{m}; disp(metricName)
+    allProps = nan(numel(settings), nIterations);
 
-    for s = 1:length(stepsList)
-        stepVal = stepsList(s);
-        stepMetrics = zeros(nIterations, 1);
+    for s = 1:numel(settings)
+
+        stepVal = settings(s); disp(stepVal)
 
         for iter = 1:nIterations
-            fname = fullfile([baseName num2str(stepVal)], sprintf('iteration_%.1f', iter), 'metrics_and_maps.mat');
+            fname = fullfile([baseName num2str(stepVal)], ...
+                             sprintf('iteration_%.1f', iter), ...
+                             'metrics_and_maps.mat');
             if isfile(fname)
                 data = load(fname);
-                % Use arrayfun if metrics is a struct array
-                gridness_vals = arrayfun(@(x) x.(metricName), data.metrics);
-                stepMetrics(iter) = mean(gridness_vals); % or max(gridness_vals)
+
+                % Extract metric values across PCs
+                metric_vals = cellfun(@(x) x.(metricName), data.GC_metrics, 'UniformOutput', false);
+                metric_vals = cell2mat(metric_vals);
+
+                % Proportion of PCs exceeding threshold
+                allProps(s, iter) = sum(metric_vals > threshold) / nPCs; %% ---- change back stepVal to nPCs!!!!!!!!!
             else
                 warning('Missing file: %s', fname);
-                stepMetrics(iter) = NaN;
             end
         end
-
-        allMetrics{s} = stepMetrics;
     end
 
-    % Compute mean and std for this metric across iterations
-    meanVals(:,m) = cellfun(@(x) mean(x, 'omitnan'), allMetrics);
-    stdVals(:,m)  = cellfun(@(x) std(x, 'omitnan'), allMetrics);
+    % Compute mean and std over iterations
+    meanProps(m, :) = mean(allProps, 2, 'omitnan');
+    stdProps(m, :)  = std(allProps, 0, 2, 'omitnan');
 end
 
-% -------- 4) PLOT --------
-figure; hold on;
-for m = 1:length(metricNames)
-    errorbar(stepsList, meanVals(:,m), stdVals(:,m), '-o', ...
-        'LineWidth', 1.5, 'DisplayName', strrep(metricNames{m}, '_', '\_'), ...
-        'Color', colors(m,:));
+% (4) PLOT
+figure('Color', 'w', 'Position', [100, 100, 900, 600]);
+hold on;
+
+metricNames = {'expanded hexagonal', 'expanded square', 'standard hexagonal', 'standard square'};
+colors = lines(numel(metricNames));  
+markers = {'o', 's', 'd', '^'};      
+
+for m = 1:numel(metricNames)
+    errorbar(settings, meanProps(m,:), stdProps(m,:), ...
+        '-o', ...
+        'Color', colors(m,:), ...
+        'Marker', markers{m}, ...
+        'MarkerFaceColor', colors(m,:), ...
+        'LineWidth', 2, ...
+        'MarkerSize', 8, ...
+        'DisplayName', metricNames{m});
 end
-xlabel('Number of Steps');
-ylabel('Gridness (mean ± SD)');
-title('Gridness Metrics Across Trajectory Lengths');
-legend('Location', 'best');
-grid on;
+
+xlabel('Number of steps', 'FontSize', 18, 'FontWeight', 'bold');
+ylabel(sprintf('Proportion of PCs > %.2f Gridness Score', threshold), ...
+       'FontSize', 18, 'FontWeight', 'bold');
+title('Trajectory length vs. Gridness Metrics', 'FontSize', 20, 'FontWeight', 'bold');
+
+legend('Location', 'best', 'FontSize', 14);
+set(gca, 'FontSize', 16, ...
+         'LineWidth', 1.2, ...
+         'Box', 'off', ...
+         'TickDir', 'out', ...
+         'XColor', 'k', ...
+         'YColor', 'k');
+
+% Optional: remove top and right spines
+ax = gca;
+ax.XRuler.Axle.LineStyle = 'none';
+ax.YRuler.Axle.LineStyle = 'none';
+
+% Turn off grid
+grid off;
+
+% Optional: tighter axis
+xlim([min(settings)-1000, max(settings)+1000]);
+ylim([0, 1]);
+
