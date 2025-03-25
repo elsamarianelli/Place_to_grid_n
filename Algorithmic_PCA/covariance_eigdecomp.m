@@ -1,6 +1,7 @@
 %% Generate and save Grid maps 
 %  Simpler covariance matrix eigen decomposition version which doesnt
 %  require training of SR matrix - faster for parameter sweep
+
 addpath('/Users/elsamarianelli/Documents/GitHub')
 addpath('/Users/elsamarianelli/Documents/GitHub/bound_warped_grids_new/Algorithmic_PCA/Functions/')
 addpath('/Users/elsamarianelli/Documents/GitHub/bound_warped_grids_new/General_functions/')
@@ -60,7 +61,13 @@ for idx = 2:length(bound_ctrl_list)    % change based on which parmeter is being
    
         % [3] Populating Place Cells
         fprintf('  Step 3/8: Populating Place Cells\n');
-        [ PlaceCellsUni, PlaceCellsTanni, ~] = generate_place_cells(In.env, In.n_cells, In.dim_x, In.dim_y, In.bound_ctrl , 'random');
+        [ PlaceCellsUni, PlaceCellsTanni, ~] = generate_place_cells(In.env, ...         % environment details
+                                                                    In.n_cells, ...     % number of cells
+                                                                    In.dim_x, ...       % environemnt dimensions
+                                                                    In.dim_y, ...       % 
+                                                                    In.bound_ctrl , ... % boundary control for tanni-uniform band
+                                                                    'random', ...       % arrayed place cell structure or randomly dispersed
+                                                                    3);                 % field width control (divides fw) so bigger means smaller place cells           
        
         % Save place cells to the subfolder
         place_cells_file = fullfile(subfolder, sprintf('orig_place_cells'));
