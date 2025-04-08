@@ -1,4 +1,5 @@
 function [Position, Direction] = HasselmoForage_varyingTrajTypes(In)
+
 %% Generates a foraging trajectory with adjustable mean speed.
 %
 %   INPUTS:
@@ -7,7 +8,7 @@ function [Position, Direction] = HasselmoForage_varyingTrajTypes(In)
 %       In.b             - Rayleigh scale parameter controlling average speed
 %       In.wallHugBias   - tendency to go towards environment boundaries (0.01 -
 %       0.05 range)     ----set to 0 to remove bias
-%       In.wallAvoidDist - how far from al before you tilt away from it
+%       In.wallAvoidDist - how far from wall before you tilt away from it
 %       (standard = 7)
 %       In.wallHugDist   - how far from wall before you start tilting back
 %       towards it (standard = 20)
@@ -31,12 +32,13 @@ Position  = zeros(In.n_steps, 2);
 Direction = zeros(In.n_steps, 1);
 
 % Start at a valid random location
-start_idx = datasample(find(In.env.L == 2), 1);
+start_idx = datasample(find(In.env.L == 2), 1); % always different
 [j, i]     = ind2sub([In.env.dim_y, In.env.dim_x], start_idx);
 Position(1,:) = [i, j];
 Direction(1)  = Dir;
 
 %% Foraging Loop
+figure; imagesc(In.env.dwmap)
 for step = 2:In.n_steps
     [dWall, aWall] = minDistAngle(In.env, round(Position(step-1,:)), Dir);
     v = RandomVel(step);
@@ -48,8 +50,10 @@ for step = 2:In.n_steps
 
     % Boundary hugging 
     elseif dWall > In.wallHugDist
-        % if far from wall agent tends to turn back towards walls
-        angle = -In.wallHugBias * aWall + RandomTurn(step);  % 0.1 is a gentle bias factor
+        % if far from wall agent tends to turn back towards walls (takes
+        % small negative sign of whatever angle to turn towards wall is,
+        % and adds noise,
+        angle = (-In.wallHugBias * aWall * (dWall/max(In.env.dwmap, [],"all"))) + RandomTurn(step); 
 
     else
         angle = RandomTurn(step);

@@ -17,12 +17,13 @@ function [PlaceCellsUni, PlaceCellsTanni, env,xy_field_u, xy_field_t ] = generat
     figure; 
     subplot(1, 2, 1); plot(xy_field_u(:,1), xy_field_u(:,2), '.', 'MarkerSize', 15); hold on;
     subplot(1, 2, 2); plot(xy_field_t(:,1), xy_field_t(:,2), '.', 'MarkerSize', 15);
+   
 
     % generate place field firing rate maps
     av_bound_dist = nanmean(env.dwmap, 'all');
     fw = fieldWidth(av_bound_dist) / fw_ctrl; % field width for uniform 
     PlaceCellsUni = generateUniformPCs(env, n_cells, xy_field_u, fw);
-    PlaceCellsTanni = generateSanderPCs(env, n_cells, xy_field_u); 
-
+    PlaceCellsTanni = generateSanderPCs(env, n_cells, xy_field_t); 
+   
 end
 

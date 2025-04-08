@@ -15,25 +15,29 @@ In.dim_y = 252;
 In.n_polys = 1;
 polys = cell(In.n_polys, 1);
 In.polys{1} = [0 0, 349 0, 349 250, 0 250, 0 0] + 2; % rectangular, change for warped trapezoid
-In.n_cells = 200;
+In.n_cells = 250;
 In.n_steps = 360000;
 In.n_iterations = 5; 
-In.NumberOfPC = 200;
-In.bound_ctrl = 2;                     % this bound control mathches what is observed experimentally in de cothi paper
-% n_steps_list = 50000:50000:360000;   % how many stes in trajectory to use
+In.NumberOfPC = 250;
+In.bound_ctrl = 1000;                   % this bound control mathches what is observed experimentally in de cothi paper
+% n_steps_list = 50000:50000:360000;    % how many stes in trajectory to use
 % n_cells_list = 50:100:250;            % how many place cells as input to covar
-% bound_ctrl_list = .5:1:4.5;            % effect of boundary on place cell
-                                       % distirbution across environemnt
+% bound_ctrl_list = .5:.5:3;            % effect of boundary on place on distirbution across environemnt
+% speed_values = 30:5:45;               % running speed used in pregenerated trajectories
+pf_width_list = 3:1:8;                  % field width control parameter (controls size of place cells_
+base_dir = 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\premade_traj_and_env';
+fixed_hug_bias = 0;
 
-for idx = 2:length(bound_ctrl_list)    % change based on which parmeter is being varied
-
+for idx = 1:length(speed_values)    % change based on which parmeter is being varied
+    
     % Reset desired parameter
     % In.n_steps = n_steps_list(idx);
     % In.n_cells = n_cells_list(idx);
     % In.NumberOfPC = n_cells_list(idx);
-    In.bound_ctrl = bound_ctrl_list(idx);
+    % In.bound_ctrl = bound_ctrl_list(idx);
+    fw_ctrl = pf_width_list(idx);
 
-    output_dir = ['Tanni_Covar_ED', '_boundaryEffect_', num2str(In.bound_ctrl)];
+    output_dir = ['param_sweeps\Tanni_Covar_ED', '_pf_width_250PCs_', num2str(pf_width_list(idx))];
     
     % Create the directory if it doesn't exist
     if ~exist(output_dir, 'dir')
@@ -54,8 +58,17 @@ for idx = 2:length(bound_ctrl_list)    % change based on which parmeter is being
     
         fprintf('  Iteration %d/%d\n', iter, In.n_iterations);
     
-        % [2] Get random trajectory from premade trajs
-        fprintf('  Step 2/8: Generating Trajectory\n'); % hasselmo version
+        % [2] Get random trajectory from premade trajs - ( or vary
+        % trajectory speeds)
+
+        % % get pregenerated trajectories with varying speeds for speed param sweep
+        % fprintf('  Step 2/8: Generating Trajectory\n'); % hasselmo version
+        % b = speed_values(idx);
+        % hug_str = strrep(sprintf('%.2f', fixed_hug_bias), '.', 'p');
+        % fname = sprintf('trajectory_b%02d_hug%s_iter%02d.mat', b, hug_str, iter);
+        % fpath = fullfile(base_dir, fname);
+        % file = load(fpath); traj = floor(file.traj.traj);
+
         traj = load_premade_traj(iter);
         traj = traj(1:In.n_steps, :);
    
@@ -67,7 +80,7 @@ for idx = 2:length(bound_ctrl_list)    % change based on which parmeter is being
                                                                     In.dim_y, ...       % 
                                                                     In.bound_ctrl , ... % boundary control for tanni-uniform band
                                                                     'random', ...       % arrayed place cell structure or randomly dispersed
-                                                                    3);                 % field width control (divides fw) so bigger means smaller place cells           
+                                                                    fw_ctrl);           % field width control (divides fw) so bigger means smaller place cells           
        
         % Save place cells to the subfolder
         place_cells_file = fullfile(subfolder, sprintf('orig_place_cells'));
@@ -76,7 +89,7 @@ for idx = 2:length(bound_ctrl_list)    % change based on which parmeter is being
         % [4] Temporal mean xeros Neuron X Time Matrix ---      remember to
         % switch back to UNIform Place cells ----
         fprintf('  Step 4/8: Neuron X Time Matrix (zero-meaned) \n');
-        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(PlaceCellsTanni, traj); % get Matrix of each PCs activity over trajectory
+        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(PlaceCellsUni, traj); % get Matrix of each PCs activity over trajectory
         NeuronxTimeMat = (NeuronxTimeMat - mean(NeuronxTimeMat, 2));                   % temporal zero meaning 
     
         % [5] PCA on covariance matrix
@@ -127,3 +140,4 @@ for idx = 2:length(bound_ctrl_list)    % change based on which parmeter is being
             
     end
 end
+
