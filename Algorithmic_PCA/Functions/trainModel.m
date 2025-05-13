@@ -55,7 +55,7 @@ for t = 1:total_steps
     phi = GetRates(ceil(x), ceil(y), cells);
     
     % Update the successor matrix (M) and reward vector (R) using a temporal difference method
-    [M, R] = SR_Update(r, phi, GetRates(ceil(n_x), ceil(n_y), cells), M, R, alpha(t));
+    [M, ~] = SR_Update(r, phi, GetRates(ceil(n_x), ceil(n_y), cells), M, R, alpha(t));
     
     % Periodically update the displayed successor matrix to visualize training progress
     if mod(t, 800) == 0

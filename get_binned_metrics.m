@@ -4,8 +4,11 @@
 %            shape - 'hexagon' or 'square' depending on gridness metric 
 %            bin_structe - 'nine' or 'three' depending on wether you want 3
 %            by 3 environment bins returned, or for 'three' option, return
-%            1 = corners 2 = sides 3 = centre
+%            1 = corners 2 = sides 3 = centre (meaned across corners and
+%            sides)
 %  Returns:  binned_metrics - 3x3 cell array with gridness metrics in each cell structure
+%                           - metrics: standard gridness/ expanded
+%                             gridness/ scale
 %            binned_sac - 3x3 sac array  
 
 function [binned_sac, binned_metrics] = get_binned_metrics(full_map, shape, bin_struct)
@@ -23,7 +26,7 @@ mini_maps = mat2cell(full_map, row_blocks, col_blocks);
 binned_sac = cellfun(@xPearson, mini_maps, 'UniformOutput', false);
 
 % [3] Define a wrapper function to collect multiple outputs from 'multiGridness'
-applyMultiGridness = @(sac, map) multiGridness(sac, shape, map, "plot");
+applyMultiGridness = @(sac, map) multiGridness(sac, shape, "off", map);
 
 % [4] Apply the function using cellfun and manually collect the outputs
 stGrd_h = cell(3,3);
@@ -56,24 +59,39 @@ if strcmp(bin_struct, 'nine')
 elseif strcmp(bin_struct, 'three')
     % Define index groups
     corners = {[1,1], [1,3], [3,1], [3,3]};
-    edges = {[2,1], [2,3], [1,2], [3,2]};
+    edges   = {[2,1], [2,3], [1,2], [3,2]};
 
     for m = 1:length(metric_names)
         metric_name = metric_names{m};
-        
-        % Extract the relevant metric array
         metric_array = eval(metric_name);
 
-        % Compute mean for corners
-        corners_data = cellfun(@(idx) metric_array{idx(1), idx(2)}, corners, 'UniformOutput', false);
-        binned_metrics(1).(metric_name) = mean(corners_data);
+        % --- Corners ---
+        corner_vals = cellfun(@(idx) metric_array{idx(1), idx(2)}, corners, 'UniformOutput', false);
+        corner_vals = cell2mat(corner_vals(cellfun(@(x) isnumeric(x) && isscalar(x) && ~isnan(x), corner_vals)));
 
-        % Compute mean for edges
-        edges_data = cellfun(@(idx) metric_array{idx(1), idx(2)}, edges);
-        binned_metrics(2).(metric_name) = mean(edges_data);
+        if isempty(corner_vals)
+            binned_metrics(1).(metric_name) = NaN;
+        else
+            binned_metrics(1).(metric_name) = mean(corner_vals);
+        end
 
-        % Assign the center metric 
-        binned_metrics(3).(metric_name) = metric_array{2,2};
+        % --- Edges ---
+        edge_vals = cellfun(@(idx) metric_array{idx(1), idx(2)}, edges, 'UniformOutput', false);
+        edge_vals = cell2mat(edge_vals(cellfun(@(x) isnumeric(x) && isscalar(x) && ~isnan(x), edge_vals)));
+
+        if isempty(edge_vals)
+            binned_metrics(2).(metric_name) = NaN;
+        else
+            binned_metrics(2).(metric_name) = mean(edge_vals);
+        end
+
+        % --- Center ---
+        center_val = metric_array{2,2};
+        if isempty(center_val) || ~isscalar(center_val) || isnan(center_val)
+            binned_metrics(3).(metric_name) = NaN;
+        else
+            binned_metrics(3).(metric_name) = center_val;
+        end
     end
 end
 end

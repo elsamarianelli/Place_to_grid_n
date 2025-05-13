@@ -19,26 +19,28 @@ In.n_cells = 250;
 In.n_steps = 360000;
 In.n_iterations = 5; 
 In.NumberOfPC = 250;
-In.bound_ctrl = 1000;                   % this bound control mathches what is observed experimentally in de cothi paper
+In.bound_ctrl = 2;                      % this bound control mathches what is observed experimentally in de cothi paper
 % n_steps_list = 50000:50000:360000;    % how many stes in trajectory to use
 % n_cells_list = 50:100:250;            % how many place cells as input to covar
 % bound_ctrl_list = .5:.5:3;            % effect of boundary on place on distirbution across environemnt
 % speed_values = 30:5:45;               % running speed used in pregenerated trajectories
-pf_width_list = 3:1:8;                  % field width control parameter (controls size of place cells_
+% pf_width_list = 1:1:2;                % field width control parameter (controls size of place cells) - normally 5
 base_dir = 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\premade_traj_and_env';
-fixed_hug_bias = 0;
+% fixed_hug_bias = 0;
+use_SR = true;  % <--- Change this to false for covariance
+file_ext = '_covar_Uni_SR_1';
 
-for idx = 1:length(speed_values)    % change based on which parmeter is being varied
+for idx = 1    % change based on which parmeter is being varied
     
     % Reset desired parameter
     % In.n_steps = n_steps_list(idx);
     % In.n_cells = n_cells_list(idx);
     % In.NumberOfPC = n_cells_list(idx);
     % In.bound_ctrl = bound_ctrl_list(idx);
-    fw_ctrl = pf_width_list(idx);
+    % fw_ctrl = pf_width_list(idx);
 
-    output_dir = ['param_sweeps\Tanni_Covar_ED', '_pf_width_250PCs_', num2str(pf_width_list(idx))];
-    
+    output_dir = ['param_sweeps\Tanni_Covar_ED', file_ext, num2str(pf_width_list(idx))];
+
     % Create the directory if it doesn't exist
     if ~exist(output_dir, 'dir')
         mkdir(output_dir);
@@ -80,27 +82,42 @@ for idx = 1:length(speed_values)    % change based on which parmeter is being va
                                                                     In.dim_y, ...       % 
                                                                     In.bound_ctrl , ... % boundary control for tanni-uniform band
                                                                     'random', ...       % arrayed place cell structure or randomly dispersed
-                                                                    fw_ctrl);           % field width control (divides fw) so bigger means smaller place cells           
+                                                                    2);           % field width control (divides fw) so bigger means smaller place cells           
        
         % Save place cells to the subfolder
         place_cells_file = fullfile(subfolder, sprintf('orig_place_cells'));
         save(place_cells_file, 'PlaceCellsUni', 'PlaceCellsTanni');
         
-        % [4] Temporal mean xeros Neuron X Time Matrix ---      remember to
+        % [4a] Temporal mean xeros Neuron X Time Matrix ---      remember to
         % switch back to UNIform Place cells ----
         fprintf('  Step 4/8: Neuron X Time Matrix (zero-meaned) \n');
-        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(PlaceCellsUni, traj); % get Matrix of each PCs activity over trajectory
-        NeuronxTimeMat = (NeuronxTimeMat - mean(NeuronxTimeMat, 2));                   % temporal zero meaning 
-    
-        % [5] PCA on covariance matrix
+        % [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(PlaceCellsUni, traj); % get Matrix of each PCs activity over trajectory
+        % NeuronxTimeMat = (NeuronxTimeMat - mean(NeuronxTimeMat, 2));                   % temporal zero meaning 
+        % 
+        % [4b] PCA on covariance matrix
         fprintf('  Step 5/8: Eigenvalue Decomposition on NeuronXNeuron Covariance Matrix\n');
         % get eigenvectors in descending order of how much variance they
         % explain (reto eigenvalues)
-        eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false); % already zero meaned so centred = false
+        % eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false); % already zero meaned so centred = false
                                                                               % Eigenvalue Decomposition of the covariance matrix
+        % [5] Alternatively - train SR matric using place cell input
+        fprintf('  Step 4/8: Training SR matrix using TDLR\n');
+        
+        % Initialize the model parameters for training
+        M = ones(In.n_cells); % Initialize connection matrix
+        R = ones(In.n_cells); % Initialize reward matric (not used here)
+
+        time_lag = 1; % Time lag of 100ms (a theta cycle)
     
+        % Train the SR matrix using the generated trajectory (T
+        [M, ~] = trainModel(PlaceCellsUni, M, R, traj, time_lag);
+
+        % get the reprojected grid cells (and place cells from SR vectors)
+        cells = getPlace(PlaceCellsUni, M, In.env);
+        [cells] = getGrid(cells, M, In.env, 'off');
+        
         % [6] Reproject eigenvectors back into 2d space and get stats
-        fprintf('  Step 6/8: reprojecting PC into 2d space and saving at Gridness\n');
+        fprintf('  Step 6/8: reprojecting PC into 2d space and saving Gridness\n');
         GC_metrics = cell(In.NumberOfPC, 1);
     
         % Initialize waitbar
@@ -111,11 +128,14 @@ for idx = 1:length(speed_values)    % change based on which parmeter is being va
             waitbar(PC / In.NumberOfPC, h, sprintf('Processing PC %d of %d...', PC, In.NumberOfPC));
         
             % Reprojecting Principal Component
-            map = comb_fields(NeuronxEnvMat, eigvec(:,PC));
+            % map = comb_fields(NeuronxEnvMat, eigvec(:,PC));
             
+            % or in SR case get from cells 
+            map = cells{PC}.grid;
+
             % Exclude boundaries before taking SAC
             map = map(3:end-2, 3:end-2);
-            sac = xPearson(map);
+            i = xPearson(map);
             
             % Compute metrics
             [metrics.stGrd_s, metrics.expGrd_s, metrics.scale_s] = multiGridness(sac, 'square', map, "plot"); 

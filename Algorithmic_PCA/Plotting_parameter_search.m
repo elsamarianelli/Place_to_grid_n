@@ -1,14 +1,14 @@
 %% Plotting Parameter search output from covariance_eigendecomp.m 
 % Shows how different numbers of trajectory steps affect different gridness metrics.
 
-% (1) SETTINGS 
-baseName     = 'param_sweeps\Tanni_Covar_ED_runningSpeed_';    % Change depending on varied parameter
-settings     = 5:5:35;                                    % Parameter values used in search
+% (1) SETTINGS
+baseName     = 'param_sweeps\Tanni_Covar_ED_covar_';              % Change depending on varied parameter
+settings     ={ 'Tanni_std_1'; 'Uni_std_1'; 'Uni_SR_1'};       % Parameter values used in search
 nIterations  = 5;                                        % Number of iterations for each parameter
 metricNames  = {'expGrd_h', 'expGrd_s', 'stGrd_h', 'stGrd_s'}; % List of metrics to plot
 threshold    = 0.8;                                      % Threshold for "gridness"
-nPCs         = 200;                                       % Number of principal components
-parameter    = 'Running Speeds';                          % for plotting
+nPCs         = 250;                                      % Number of principal components
+parameter    = 'Place cell type, and PCA type';               % for plotting
 
 % (2) SETUP
 colors = lines(numel(metricNames));       
@@ -25,12 +25,12 @@ for m = 1:numel(metricNames)
     metricName = metricNames{m}; disp(metricName)
     allProps = nan(numel(settings), nIterations);
 
-    for s = 1:numel(settings)
+    for s = 3:numel(settings)
 
-        stepVal = settings(s); disp(stepVal)
+        stepVal = settings{s}; disp(stepVal)
 
         for iter = 1:nIterations
-            fname = fullfile([baseName num2str(stepVal)], ...
+            fname = fullfile([baseName ,(stepVal)], ...
                              sprintf('iteration_%.1f', iter), ...
                              'metrics_and_maps.mat');
             if isfile(fname)
@@ -76,7 +76,9 @@ figure('Color', 'w', 'Position', [100, 100, 1200, 550]);
 subplot(1,2,1); hold on;
 metricNames = {'expanded hexagonal', 'expanded square', 'standard hexagonal', 'standard square'};
 colors = lines(numel(metricNames));  
-markers = {'o', 's', 'd', '^'};      
+markers = {'o', 's', 'd', '^'};    
+
+settings1 = categorical(settings);
 
 for m = 1:numel(metricNames)
     errorbar(settings, meanProps(m,:), stdProps(m,:), ...
@@ -154,17 +156,17 @@ set(gca, 'FontSize', 14, 'LineWidth', 1.2, 'Box', 'off', ...
 grid off;
 
 % %% for comparison between 2 different setting use this to change x axis ticks...
-% tick_positions = sort(settings);  % ensures increasing order
+tick_positions = sort(settings);  % ensures increasing order
 % tick_labels = {'Random', 'Arrayed'};  % adjust label order to match
-% tick_labels = {'5', '10', '15', '20', '25'};  % adjust label order to match
-% 
-% subplot(1,2,1);
-% xticks(tick_positions);
-% xticklabels(tick_labels);
-% 
-% subplot(1,2,2);
-% xticks(tick_positions);
-% xticklabels(tick_labels);
+tick_labels = {'1(largest)', '2', '3', '4', '5(standard)','6', '7', '8(smallest)'};  % adjust label order to match
+
+subplot(1,2,1);
+xticks(tick_positions);
+xticklabels(tick_labels);
+
+subplot(1,2,2);
+xticks(tick_positions);
+xticklabels(tick_labels);
 
 %% visualise gridness scores over threshold for each PC
 baseName = 'param_sweeps\Tanni_Covar_ED_boundaryEffect_2.5';  % Change depending on varied parameter
@@ -257,8 +259,135 @@ xticklabels(tick_labels);
 nexttile(5); xlabel('Number of Steps');
 nexttile(6); xlabel('Number of Steps');
 
+%% (6) looking at binned paramater sweeps
+% === Parameters ===
+settings = 250;
+nSettings = numel(settings);
+nIterations = 5;
+nPCs = 200;
+bin_types = 3;
+metrics_to_extract = {'expGrd_h', 'scale_h'};
+
+% === Initialize Storage ===
+all_means = struct();
+all_stds  = struct();
+
+for m = 1:length(metrics_to_extract)
+    metric_name = metrics_to_extract{m};
+    all_means.(metric_name) = nan(nSettings, bin_types);
+    all_stds.(metric_name)  = nan(nSettings, bin_types);
+end
+
+for s = 1:nSettings
+    stepVal = settings(s);
+    allVals = struct();
+    for m = 1:length(metrics_to_extract)
+        allVals.(metrics_to_extract{m}) = nan(nIterations, nPCs, bin_types);  % 5 x 200 x 3
+    end
+
+    for iter = 1:nIterations
+        disp(['setting ', num2str(stepVal), ', iteration: ', num2str(iter)])
+        baseName = ['Tanni_Covar_ED_n_cells_' num2str(stepVal)];
+        fname = fullfile(baseName, sprintf('iteration_%.1f', iter), 'metrics_and_maps.mat');
+        if ~isfile(fname)
+            warning("Missing: %s", fname);
+        end
+        data = load(fname);
+
+        for pc = 1:nPCs
+            try
+                map = data.GC_metrics{pc}.map;
+                [~, binned] = get_binned_metrics(map, 'hexagon', 'three');
+
+                for m = 1:length(metrics_to_extract)
+                    metric_name = metrics_to_extract{m};
+                    for b = 1:bin_types
+                        allVals.(metric_name)(iter, pc, b) = binned(b).(metric_name);
+                    end
+                end
+
+            catch ME
+                warning('PC %d skipped (iter %d, setting %d): %s', pc, iter, stepVal, ME.message);
+                continue;
+            end
+        end
+    end
+
+    % === Average & Store ===
+    for m = 1:length(metrics_to_extract)
+        metric_name = metrics_to_extract{m};
+        mean_iter = squeeze(mean(allVals.(metric_name), 2, 'omitnan'));  % 5 x 3
+        all_means.(metric_name)(s, :) = mean(mean_iter, 1, 'omitnan');
+        all_stds.(metric_name)(s, :)  = std(mean_iter, 0, 1, 'omitnan');
+    end
+end
+
+% === Choose metric to plot ===
+plot_metric = 'scale_h';  % or 'scale_h'
+settings = [0 1]
+% === Setup ===
+figure; hold on;
+colors = lines(3);
+labels = {'Corners', 'Edges', 'Center'};
+
+% === Plot for each bin type (corner, edge, center) ===
+for b = 1:3
+    errorbar(settings, all_means.(plot_metric)(:, b), all_stds.(plot_metric)(:, b), '-o', ...
+        'DisplayName', labels{b}, 'LineWidth', 1.5, 'Color', colors(b,:));
+end
+
+plt_metric = 'Grid Scale';
+xlabel('Uni Vs Sanders');
+ylabel(['Scale'], 'FontSize', 12);
+legend('Location', 'best');
+title(['Binned ' plt_metric ' vs Boundary effect'], 'FontSize', 13);
+grid off;
+set(gca, 'FontSize', 12);
+
+%%
+
+% (7) CHECKING PLACE AND GRIDS NEXT TO EACH OTHER 
+% === Parameters ===
+suffixes = 1;                     % Columns
+pc_ids = 1:20:241;                  % 13 PCs → rows 2 to 14
+nRows = length(pc_ids) + 1;         % Total rows = 14 (incl. place)
+nCols = length(suffixes);
+iter = 1;
+
+% === Create Compact Figure ===
+figure;
+t = tiledlayout(nRows, nCols, 'TileSpacing', 'none', 'Padding', 'none');
+
+for c = 1:nCols
+    suf = suffixes(c);
+    baseName = ['param_sweeps\Tanni_Covar_ED_covar_Uni_std_' num2str(suf)];
+
+    % --- Load Place Cell ---
+    place_fname = fullfile(baseName, sprintf('iteration_%.1f', iter), 'orig_place_cells.mat');
+    pc_data = load(place_fname);
+    place_map = pc_data.PlaceCellsUni{10}.fmap;
+
+    % === Plot Place Cell (row 1) ===
+    tileIdx = (1 - 1) * nCols + c;
+    nexttile(tileIdx);
+    imagesc(place_map);
+    colormap(jet); axis off;
+    title(['PCs\_' num2str(suf)], 'Interpreter', 'none');
+
+    % --- Load Grid Cell Maps ---
+    gc_fname = fullfile(baseName, sprintf('iteration_%.1f', iter), 'metrics_and_maps.mat');
+    data = load(gc_fname);
+
+    % === Plot Each Grid Cell Map (rows 2 to 14) ===
+    for r = 1:length(pc_ids)
+        disp([c r])
+        pc = pc_ids(r);
+        tileIdx = r * nCols + c;  % row index is r+1 (since row 1 is place cell)
+        nexttile(tileIdx);
+        imagesc(data.GC_metrics{pc}.sac);
+        colormap(jet); axis off;
+    end
+end
 
 
-% (6) LOOKING AT BINNED STATS 
 
------

@@ -46,7 +46,7 @@ new_M = M + alpha * (phi' + gamma * M * n_phi' - M * phi') * phi;
 %
 % This ensures `R` captures **long-term expected rewards** from the SR matrix.
 
-R = R + r_alpha * M * phi' .* (r + gamma * dot(M * n_phi', R) - dot(M * phi', R));
+% R = R + r_alpha * M * phi' .* (r + gamma * dot(M * n_phi', R) - dot(M * phi', R));
 
 end
 
