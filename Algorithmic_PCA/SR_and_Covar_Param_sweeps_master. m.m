@@ -20,6 +20,7 @@
 %       - Spatial scale
 %       - Spatial autocorrelograms (SACs)
 %       - 2D grid cell rate maps
+
 %% [0] SETUP & PARAMETERS
 
 % Add paths
@@ -30,10 +31,11 @@ addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_P
 addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n'
 addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\General_functions'
 
-% to do - SR Tanni / Cov Uni / 
+% to do - true flase/ false false/ false true - running! (true true done -
+% check)
 % Parameters to set....
-use_SR  = true;             % Toggle: true = SR, false = Covariance
-use_Uni = false;            % Toggle: true = Uniform place cells, false = Tanni Place cells
+use_SR  = false;             % Toggle: true = SR, false = Covariance
+use_Uni = true  ;            % Toggle: true = Uniform place cells, false = Tanni Place cells
 
 pf_width_cntrl = 2;         % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
@@ -59,11 +61,13 @@ output_dir = fullfile(base_dir, ['SR_Covar_check_' method_tag '_' PlaceCell_tag]
 if ~exist(output_dir, 'dir'); mkdir(output_dir); end
 
 %% [1] Generate Environment (same for all iterations)
+
 fprintf('Generating Environment...\n');
 In.env = GenerateEnv(In.polys, In.dim_x, In.dim_y, 'trapezoid');
 
 %% MAIN LOOP 
 for iter = 1:n_iterations
+
     fprintf('--- Iteration %d/%d ---\n', iter, n_iterations);
 
     % Make folder
@@ -71,11 +75,13 @@ for iter = 1:n_iterations
     if ~exist(subfolder, 'dir'); mkdir(subfolder); end
 
     %% [2] Load Trajectory
+
     fprintf('Load Trajectory...\n')
     traj = load_premade_traj(iter);
     traj = traj(1:n_steps, :);  % trim to desired length
 
     %% [3] Generate Place Cells
+
     fprintf('Generating Place Cells...\n');
 
     if use_Uni
@@ -91,6 +97,7 @@ for iter = 1:n_iterations
     save(fullfile(subfolder, 'orig_place_cells.mat'), 'Cells');
 
     %% [4] Generate SR matrix or Covariance matrix and do PCA
+
     fprintf('Creating Grid Cells via %s\n', method_tag);
 
     if use_SR
@@ -108,6 +115,7 @@ for iter = 1:n_iterations
     end
 
     %% [5] Compute Grid Metrics
+
     fprintf('Computing Gridness Metrics...\n');
     GC_metrics = cell(n_cells, 1);
     h = waitbar(0, 'Processing PCs...');
@@ -140,8 +148,10 @@ for iter = 1:n_iterations
     close(h);
 
     %% [6] Save Results
+
     fprintf('Saving...\n');
     save(fullfile(subfolder, 'metrics_and_maps.mat'), 'In', 'GC_metrics', '-v7.3');
+
 end
 
 fprintf('\nAll done.\n');
