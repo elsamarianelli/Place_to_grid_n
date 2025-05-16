@@ -1,7 +1,7 @@
 %% Grid Cell Generation and Parameter Sweep Analysis
 % 
 % Author: Elsa Marianelli, UCL (2025) – zcbtetm@ucl.ac.uk
-% Adapted from: Will de Cothi (2018) – Successor Representation (SR) code
+% Adapted from: Will de Cothi (2018) – Successor Representation code
 %
 % Description:
 % This script runs a single parameter setting to generate grid cells from
@@ -31,39 +31,47 @@ addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_P
 addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n'
 addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\General_functions'
 
-% to do - true flase/ false false/ false true - running! (true true done -
-% check)
 % Parameters to set....
-use_SR  = false;             % Toggle: true = SR, false = Covariance
-use_Uni = true  ;            % Toggle: true = Uniform place cells, false = Tanni Place cells
+use_SR  = false;             % true = SR matrix, false = Covariance matrix
+use_Uni = false;             % true = Uniform place cells, false = Tanni Place cells
+use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
+                             % hasselmo = standard one with wall avoidance
+                             % and speed angle changes 
+                             % thigmotaxis = '#
+trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
+env_shape = 'trapezoid';     % environemtn shape - 'trapexoid' (rectangle or trapexoid) OR can be 'circle'
 
-pf_width_cntrl = 2;         % Field width divisor (2 = narrower PCs)
+% Place Cell controls - both true = tanni, both false = uniform, can vary
+% independantly
+pc_density = true;           % true = density varies with distance to boundary
+pc_size    = true;           % true = size also varies relatively
+
+% Additional parameters and environemnt details...
+In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-n_cells = 250;
-n_steps = 150000;
-
-% Environment details
-In.dim_x = 351;
+In.n_cells = 250;               % number of place cells
+In.n_steps = 150000;            % trajectory length
+In.dim_x = 351;                 % environment dimensions
 In.dim_y = 252;
 In.n_polys = 1;
-In.polys{1} = [0 0, 349 0, 349 250, 0 250, 0 0] + 2;
-In.n_cells = n_cells;
-In.n_steps = n_steps;
-In.NumberOfPC = n_cells;
+In.NumberOfPC = In.n_cells; % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
-
+            
 % Folder naming
 base_dir = 'param_sweeps';
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 PlaceCell_tag = 'Uniform'; if ~use_Uni; PlaceCell_tag = 'Tanni'; end
+traj_tag = use_traj; 
 
-output_dir = fullfile(base_dir, ['SR_Covar_check_' method_tag '_' PlaceCell_tag]);
+% Saving 
+output_dir = fullfile(base_dir, ['SR_Covar_check_' method_tag '_' PlaceCell_tag, '_', traj_tag]);
 if ~exist(output_dir, 'dir'); mkdir(output_dir); end
 
 %% [1] Generate Environment (same for all iterations)
 
 fprintf('Generating Environment...\n');
-In.env = GenerateEnv(In.polys, In.dim_x, In.dim_y, 'trapezoid');
+In.polys{1} = [0 trap_add, 349 0, 349 250, 0 250-trap_add, 0 0] + 2;  
+In.env = GenerateEnv(In, env_shape);
 
 %% MAIN LOOP 
 for iter = 1:n_iterations
@@ -77,51 +85,49 @@ for iter = 1:n_iterations
     %% [2] Load Trajectory
 
     fprintf('Load Trajectory...\n')
-    traj = load_premade_traj(iter);
-    traj = traj(1:n_steps, :);  % trim to desired length
+
+    if strcmp(traj_tag, 'uniform')
+        % in order to completely remove time effects from the covariance
+        % matrix since that is the goal "traj" input should be uniform
+        % sampling of th environment...
+        traj_cov = unique(combinations((1:In.dim_x)', (1:In.dim_y)'));  
+        % double up so the number of steps is roughtly the same as whats used in SR
+        traj = table2array([traj_cov; traj_cov]);
+    elseif strcmp(traj_tag, 'hasselmo')    
+        traj = load_premade_traj(iter);
+        traj = traj(1:In.n_steps, :);  % trim to desired length
+    elseif strcmp(traj_tag, 'thigmotaxis')%
+            %To DO - generate different type of 
+    end
 
     %% [3] Generate Place Cells
-
     fprintf('Generating Place Cells...\n');
-
-    if use_Uni
-    % Uniform Place cells
-    [Cells, ~, ~] = generate_place_cells( ...
-        In.env, n_cells, In.dim_x, In.dim_y, In.bound_ctrl, 'random', 2);
-    else 
-    % Tanni Place cells
-    [~, Cells, ~] = generate_place_cells( ...
-        In.env, n_cells, In.dim_x, In.dim_y, In.bound_ctrl, 'random', 2);
-    end
-    
+    [Cells, In.env] = generate_place_cells(In, pc_density, pc_size);
     save(fullfile(subfolder, 'orig_place_cells.mat'), 'Cells');
 
     %% [4] Generate SR matrix or Covariance matrix and do PCA
 
     fprintf('Creating Grid Cells via %s\n', method_tag);
 
-    if use_SR
-        % SR Matrix 
-        M = ones(n_cells); R = ones(n_cells);
+    if use_SR % SR Matrix
+        M = ones(In.n_cells); R = ones(In.n_cells);
         [M, ~] = trainModel(Cells, M, R, traj, 1);
         cells = getPlace(Cells, M, In.env);
         cells = getGrid(cells, M, In.env, 'off');
-    else 
-        % Covariance Matrix 
-        [~, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
+    else % Covariance Matrix 
+        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
         NeuronxTimeMat = NeuronxTimeMat - mean(NeuronxTimeMat, 2);
         eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false);
-        [NeuronxEnvMat, ~] = reformat_firing_maps(Cells, traj);
     end
 
     %% [5] Compute Grid Metrics
 
     fprintf('Computing Gridness Metrics...\n');
-    GC_metrics = cell(n_cells, 1);
+    GC_metrics = cell(In.n_cells, 1);
     h = waitbar(0, 'Processing PCs...');
 
-    for PC = 1:n_cells
-        waitbar(PC / n_cells, h);
+    for PC = 1:In.n_cells
+        waitbar(PC / In.n_cells, h);
 
         if use_SR
             map = cells{PC}.grid; % grid already calculated before
@@ -131,7 +137,7 @@ for iter = 1:n_iterations
             map = comb_fields(NeuronxEnvMat, eigvec(:, PC)); 
         end
 
-        map = map(3:end-2, 3:end-2);
+        map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
         sac = xPearson(map); % spatial autocorrelogram
 
         if all(isnan(sac(:)))

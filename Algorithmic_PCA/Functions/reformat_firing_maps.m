@@ -1,10 +1,6 @@
 %% Reformat Place Cell Firing Maps for Analysis
 function [format_1, format_2] = reformat_firing_maps(fm, traj)
 
-% This function reformats firing maps of place cells into two different structures:
-% 1. A 3D matrix representing spatial firing rates across x and y positions for all cells.
-% 2. A 2D matrix representing the firing rates of each cell at each step along a given trajectory.
-%
 % Inputs:
 %   fm   - A cell array where each element contains a structure with a firing map (fmap).
 %          fmap is a 2D matrix representing the spatial firing rate of a place cell.

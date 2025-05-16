@@ -1,29 +1,46 @@
-function [PlaceCellsUni, PlaceCellsTanni, env,xy_field_u, xy_field_t ] = generate_place_cells( ...
-    env, n_cells, dim_x, dim_y, boundary_effect, distribution_type, fw_ctrl)
-% generate place cells with option for arrayed or random place cell
-% distribution, returning uniformly distributed and boundary effected place
-% cells. ( returned PlaceCellsTanni in case of 'array' setting just returns
-% normal non warped array, need to add this in later if decide to use)
+function [PlaceCells, In.env] = generate_place_cells(In, pc_density, pc_size)
+% GENERATE_PLACE_CELLS Generates place cells with controllable density and field size
+% 
+%   [PlaceCells, env] = generate_place_cells(In, pc_density, pc_size)
+%
+%   This function generates place cells in an environment, allowing:
+%     - Control over whether the place cell distribution varies with distance to boundaries (pc_density)
+%     - Control over whether the place field size varies with boundary distance (pc_size)
+%
+%   INPUTS:
+%     In          - structure with environment and cell parameters
+%     pc_density  - boolean, true if place field density should vary near boundaries
+%     pc_size     - boolean, true if place field size should vary near boundaries
+%
+%   OUTPUTS:
+%     PlaceCells  - generated place cell structure
+%     In.env      - updated environment structure
 
-    % generate place field centres
-    if strcmp(distribution_type, 'random')
-        [xy_field_u, env] = getPlaceFieldCentres(env, n_cells, dim_x, dim_y, 1000);
-        [xy_field_t, env] = getPlaceFieldCentres(env, n_cells, dim_x, dim_y, boundary_effect);
-    elseif strcmp(distribution_type, 'array')
-        [xy_field_u, env] = get_warped_array_coords(env, dim_x, dim_y, n_cells, 'uniform');
-        [xy_field_t, env] = get_warped_array_coords(env, dim_x, dim_y, n_cells, 'warped');
+    % [1] Set place field centres 
+    if pc_density
+        % Boundary-modulated place field density
+        [xy_field, In.env] = getPlaceFieldCentres(In.env, In.n_cells, In.dim_x, In.dim_y, In.bound_ctrl);
+    else
+        % Uniform place field density
+        [xy_field, In.env] = getPlaceFieldCentres(In.env, In.n_cells, In.dim_x, In.dim_y, 1000);
     end
 
-    % plot place field centres 
-    figure; 
-    subplot(1, 2, 1); plot(xy_field_u(:,1), xy_field_u(:,2), '.', 'MarkerSize', 15); hold on;
-    subplot(1, 2, 2); plot(xy_field_t(:,1), xy_field_t(:,2), '.', 'MarkerSize', 15);
-   
-    % generate place field firing rate maps
-    av_bound_dist = nanmean(env.dwmap, 'all');
-    fw = fieldWidth(av_bound_dist) / fw_ctrl; % field width for uniform 
-    PlaceCellsUni = generateUniformPCs(env, n_cells, xy_field_u, fw);
-    PlaceCellsTanni = generateSanderPCs(env, n_cells, xy_field_t); 
-   
+    % [2] Set place field widths 
+    if pc_size
+        % Boundary-modulated place field size
+        PlaceCells = generateSanderPCs(In.env, In.n_cells, xy_field);
+    else
+        % Uniform place field size
+        av_bound_dist = nanmean(In.env.dwmap, 'all');
+        fw = fieldWidth(av_bound_dist) / In.pf_width_cntrl;
+        PlaceCells = generateUniformPCs(In.env, In.n_cells, xy_field, fw);
+    end
+
+    %  [Optional] Plot field centres 
+    % figure;
+    % scatter(xy_field(:,1), xy_field(:,2), 20, 'filled');
+    % title('Place Field Centres');
+    % axis equal tight;
+
 end
 

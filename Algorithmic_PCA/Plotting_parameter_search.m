@@ -5,10 +5,12 @@ addpath param_sweeps
 baseNames = { ...
     'param_sweeps\SR_Covar_check_SR_Uniform', ...
     'param_sweeps\SR_Covar_check_SR_Tanni',...
-    'param_sweeps\SR_Covar_check_covar_Tanni'};
-    %'param_sweeps\SR_Covar_check_covar_Uniform'};
+    'param_sweeps\SR_Covar_check_covar_Tanni',...
+    'param_sweeps\SR_Covar_check_covar_Uniform',...
+    'param_sweeps\SR_Covar_check_covar_uni_trajectory_Tanni',...
+    'param_sweeps\SR_Covar_check_covar_uni_trajectory_Uniform'};
 
-labels = { 'SR Uniform','SR Tanni', 'Covar Tanni', 'Covar Uniform'};
+labels = { 'SR Uniform','SR Tanni', 'Covar Tanni', 'Covar Uniform', 'Covar no Traj Tanni', 'Covar no Traj Uniform'};
 
 nIterations  = 5;                                        % Number of iterations for each parameter
 metricNames  = {'expGrd_h', 'expGrd_s', 'stGrd_h', 'stGrd_s'}; % List of metrics to plot
@@ -91,7 +93,7 @@ for s = 1:nBases
     stdScale_s(s)  = std(allScale_s, 0, 'omitnan');
 end
 
-%% (4) PLOT: Gridness and Field Scale Comparison
+%% (1) PLOT: Gridness and Field Scale Comparison
 figure('Color', 'w', 'Position', [100, 100, 1300, 600]);
 
 % === FORMATTING ===
@@ -165,13 +167,10 @@ set(gca, 'FontSize', 16, 'LineWidth', 1.5, ...
     'Box', 'off', 'TickDir', 'out', 'XColor', 'k', 'YColor', 'k');
 grid on;
 
-
-
-
-%% (1) Visualise Gridness Scores > Threshold for Each PC
+%% (2) Visualise Gridness Scores > Threshold for Each PC
 baseName = 'param_sweeps\Tanni_Covar_ED_boundaryEffect_2.5';
 nIterations = 5;
-nPCs = 200;
+nPCs = 250;
 threshold = 0.8;
 
 % Call external visualisation function
@@ -238,14 +237,16 @@ nexttile(6); xlabel('Number of Steps');
 
 
 %% (3) Binned Parameter Sweep Plot
-settings = [250];  % Or a vector if needed
-nIterations = 5;
-nPCs = 200;
-bin_types = 3;
-metrics_to_extract = {'expGrd_h', 'scale_h'};
 
-% === Initialize Containers ===
+% === Settings ===
+settings = baseNames;                       % cell array of base folder names
+nIterations = 5;
+nPCs = 250;
+bin_types = 3;
+metrics_to_extract = {'expGrd_h', 'scale_h'};  % metrics to collect
 nSettings = numel(settings);
+
+% === Preallocate storage ===
 all_means = struct(); all_stds = struct();
 for m = 1:numel(metrics_to_extract)
     metric = metrics_to_extract{m};
@@ -253,21 +254,23 @@ for m = 1:numel(metrics_to_extract)
     all_stds.(metric)  = nan(nSettings, bin_types);
 end
 
-% === Collect Data ===
+% === Loop over parameter settings ===
 for s = 1:nSettings
-    stepVal = settings(s);
-    baseName = ['Tanni_Covar_ED_n_cells_' num2str(stepVal)];
-    
-    % Preallocate
+    settingLabel = settings{s};
+    fprintf('\n=== Processing setting %d/%d: %s ===\n', s, nSettings, settingLabel);
+
+    % Temporary containers for this setting
     allVals = struct();
     for m = 1:numel(metrics_to_extract)
         allVals.(metrics_to_extract{m}) = nan(nIterations, nPCs, bin_types);
     end
 
     for iter = 1:nIterations
-        fname = fullfile(baseName, sprintf('iteration_%.1f', iter), 'metrics_and_maps.mat');
+        fprintf(' - Iteration %d/%d\n', iter, nIterations);
+        fname = fullfile(settingLabel, sprintf('iteration_%.1f', iter), 'metrics_and_maps.mat');
         if ~isfile(fname)
-            warning("Missing file: %s", fname); continue;
+            warning('Missing file: %s', fname);
+            continue;
         end
         data = load(fname);
 
@@ -275,21 +278,27 @@ for s = 1:nSettings
             try
                 map = data.GC_metrics{pc}.map;
                 [~, binned] = get_binned_metrics(map, 'hexagon', 'three');
+
+                % Store each selected metric
                 for m = 1:numel(metrics_to_extract)
                     for b = 1:bin_types
-                        allVals.(metrics_to_extract{m})(iter, pc, b) = binned(b).(metrics_to_extract{m});
+                        val = binned(b).(metrics_to_extract{m});
+                        allVals.(metrics_to_extract{m})(iter, pc, b) = val;
                     end
                 end
-            catch ME
-                warning('PC %d skipped (iter %d, setting %d): %s', pc, iter, stepVal, ME.message);
+            catch
+                warning('PC %d failed at iter %d, setting %s', pc, iter, settingLabel);
+                continue;
             end
         end
     end
 
-    % === Average & Store ===
+    % === Compute and store statistics ===
     for m = 1:numel(metrics_to_extract)
         metric = metrics_to_extract{m};
-        mean_iter = squeeze(mean(allVals.(metric), 2, 'omitnan'));  % size: [iterations x bins]
+        metric_vals = allVals.(metric);
+
+        mean_iter = squeeze(mean(metric_vals, 2, 'omitnan'));  % [nIter x 3]
         all_means.(metric)(s, :) = mean(mean_iter, 1, 'omitnan');
         all_stds.(metric)(s, :)  = std(mean_iter, 0, 1, 'omitnan');
     end
@@ -302,21 +311,22 @@ colors = lines(3);
 bin_labels = {'Corners', 'Edges', 'Center'};
 
 for b = 1:bin_types
-    errorbar(settings, all_means.(plot_metric)(:, b), ...
+
+    errorbar((1:numel(settings)), all_means.(plot_metric)(:, b), ...
                       all_stds.(plot_metric)(:, b), ...
                       '-o', 'DisplayName', bin_labels{b}, ...
                       'LineWidth', 1.5, 'Color', colors(b,:));
 end
 
-xlabel('Condition (e.g., n cells)');
+xlabel('Condition');
 ylabel('Scale', 'FontSize', 12);
 title(['Binned ' plot_metric ' vs Boundary Effect'], 'FontSize', 13);
 legend('Location', 'best');
 set(gca, 'FontSize', 12);
 grid on;
+xticks(1:4); xticklabels(labels);
 
-%%
-% (4) Place + Grid Cell Comparison
+%% (4) Place + Grid Cell Comparison
 suffixes = 1;                      % Folder index
 pc_ids = 1:20:241;                 % PC rows (13 total)
 iter = 1;
