@@ -42,7 +42,7 @@ In.shape = 'trapezoid';     % environemtn shape - 'trapezoid' (rectangle or trap
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
 pc_density = false;           % true = density varies with distance to boundary
-pc_size    = true;          % true = size also varies relatively
+pc_size    = false;          % true = size also varies relatively
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
@@ -60,7 +60,7 @@ base_dir = 'grids_data';
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj; 
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
-size_tag = 'densityVaried' ; if ~ pc_size; size_tag = 'densityConstant'; end
+size_tag = 'sizeVaried' ; if ~ pc_size; size_tag = 'sizeConstant'; end
 
 % Saving 
 output_dir = fullfile(base_dir, ['SR_Covar_check_' method_tag, ...
@@ -74,7 +74,7 @@ In.polys{1} = [0 trap_add, 349 0, 349 250, 0 250-trap_add, 0 0] + 2;
 In = GenerateEnv(In);   % returns In strucutre now with environemnt info (In.env)
 
 %% MAIN LOOP 
-for iter = 4:n_iterations
+for iter = 1:n_iterations
 
     fprintf('--- Iteration %d/%d ---\n', iter, n_iterations);
 

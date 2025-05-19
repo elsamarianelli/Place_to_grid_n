@@ -13,7 +13,7 @@
 %% Figure 1 - How does changing density and size parameters of Place cells affect Grids?
 %% First, load the data
 folder = '/Users/elsamarianelli/Documents/grids_data/';
-basename = 'SR_Covar_check_SR_Tanni';
+basename = 'SR_Covar_check_covar_hasselmo_densityConstant_densityVaried';
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename);
  
