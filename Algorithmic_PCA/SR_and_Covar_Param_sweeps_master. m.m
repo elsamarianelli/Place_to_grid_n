@@ -48,7 +48,7 @@ pc_size    = false;          % true = size also varies relatively
 In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
 In.n_cells = 250;               % number of place cells
-In.n_steps = 15000;             % trajectory length
+In.n_steps = 150000;             % trajectory length
 In.dim_x = 351;                 % environment dimensions
 In.dim_y = 252;
 In.n_polys = 1;
@@ -63,7 +63,7 @@ density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'
 size_tag = 'sizeVaried' ; if ~ pc_size; size_tag = 'sizeConstant'; end
 
 % Saving 
-output_dir = fullfile(base_dir, ['SR_Covar_check_' method_tag, ...
+output_dir = fullfile(base_dir, ['data_' method_tag, ...
     '_', traj_tag, '_', density_tag, '_', size_tag]);
 if ~exist(output_dir, 'dir'); mkdir(output_dir); end
 

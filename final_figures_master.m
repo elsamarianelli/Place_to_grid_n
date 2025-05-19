@@ -13,10 +13,18 @@
 %% Figure 1 - How does changing density and size parameters of Place cells affect Grids?
 %% First, load the data
 folder = '/Users/elsamarianelli/Documents/grids_data/';
-basename = 'SR_Covar_check_covar_hasselmo_densityConstant_densityVaried';
-
+base = 'data_';
+name =    'covar_hasselmo_densityVaried_sizeConstant';
+basename = [base, name];
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename);
- 
+
+% initiate folder to save figuyres
+subfolder = fullfile('grids_figures', name);  % or any folder name
+
+% Create subfolder if it doesn't exist
+if ~exist(subfolder, 'dir')
+    mkdir(subfolder);
+end
 %% [A] Visualise how distribution of place cell centres vary
 % Extract all fmaps into a cell array
 fmaps = cellfun(@(pc) pc.fmap, Place_cells, 'UniformOutput', false);
@@ -43,13 +51,30 @@ end
 % Clean appearance
 axis equal; set(gca, 'Box', 'on', 'XTick', [], 'YTick', []);
 
+% Save the figure
+saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.png'));
+
 %% [B] Visualise how size of place cells vary 
 figure; 
-for i = 1:5
+for i = 1:10
     map = Place_cells{i*6}.fmap;
-    subplot(1, 5, i); imagesc(map)
+    subplot(2, 5, i); imagesc(map)
     axis off; axis image      
 end
+
+% Save the figure
+saveas(gcf, fullfile(subfolder, 'Figure_B_place.png'));
+
+%% [b]2 Visualise some grids
+figure; 
+for i = 1:10
+    map = Grid_cells{1}{i*3}.map;
+    subplot(2, 5, i); imagesc(map)
+    axis off; axis image      
+end
+
+% Save the figure
+saveas(gcf, fullfile(subfolder, 'Figure_B_grid.png'));
 %% [C] Bar charts and heat maps 
 % SETTINGS 
 metric_name = 'scale_h';     % e.g., 'expGrd_h', 'scale_h'
@@ -97,6 +122,9 @@ ylabel('Grid Scale', 'FontSize', 20);
 xlabel('Environmental Bin', 'FontSize', 20);
 ylim([0, max(means + stds)*1.2]); 
 
+% Save the figure
+saveas(gcf, fullfile(subfolder, 'Figure_C_BarChart.png'));
+
 %% [D]Heat map
 % Reshape
 mean_reshaped = reshape(means, 3, 3);
@@ -110,3 +138,6 @@ h = heatmap(mean_reshaped, ...
 h.GridVisible = 'off';                 % removes grid lines
 h.FontSize = 20;                       % larger font for axis ticks
 h.ColorbarVisible = 'on';              % keep colorbar
+
+% Save the figure
+saveas(gcf, fullfile(subfolder, 'Figure_D_HeatMap.png'));
