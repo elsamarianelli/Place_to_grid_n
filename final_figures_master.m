@@ -1,0 +1,112 @@
+% [1] load in data
+% General parameter sweeps for the simplest version (covar) - 
+% specifically changes in place field size with distance to the wall, 
+% 
+% changes in place field density with distance to the wall, 
+% 
+% changes in place field size and density with distance to the wall. 
+% 
+% Plot grid scale and ellipticity in nine areas of the environment, 
+% 
+% bar charts of those parameters in edge, corner, central areas
+
+%% Figure 1 - How does changing density and size parameters of Place cells affect Grids?
+%% First, load the data
+folder = '/Users/elsamarianelli/Documents/grids_data/';
+basename = 'SR_Covar_check_SR_Tanni';
+
+[Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename);
+ 
+%% [A] Visualise how distribution of place cell centres vary
+% Extract all fmaps into a cell array
+fmaps = cellfun(@(pc) pc.fmap, Place_cells, 'UniformOutput', false);
+
+% Use cellfun to get linear index of the max in each fmap
+linear_idx = cellfun(@(f) find(f == max(f(:)), 1), fmaps);  % take first if multiple
+[rows, cols] = cellfun(@(f, idx) ind2sub(size(f), idx), fmaps, num2cell(linear_idx));
+
+figure; hold on; plot(cols, rows, 'o', 'MarkerSize', 5, 'Color', 'k', 'MarkerFaceColor','k');
+
+% Get environemnt bin lines 
+xlim tight; ylim tight; xLimits = xlim; yLimits = ylim;
+x_thirds = xLimits(1) + diff(xLimits) * [1/3, 2/3];
+y_thirds = yLimits(1) + diff(yLimits) * [1/3, 2/3];
+
+% Add lines at 1/3 and 2/3
+for x = x_thirds
+    xline(x, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1);
+end
+for y = y_thirds
+    yline(y, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1);
+end
+
+% Clean appearance
+axis equal; set(gca, 'Box', 'on', 'XTick', [], 'YTick', []);
+
+%% [B] Visualise how size of place cells vary 
+figure; 
+for i = 1:5
+    map = Place_cells{i*6}.fmap;
+    subplot(1, 5, i); imagesc(map)
+    axis off; axis image      
+end
+%% [C] Bar charts and heat maps 
+% SETTINGS 
+metric_name = 'scale_h';     % e.g., 'expGrd_h', 'scale_h'
+shape = 'hexagon';           % or 'square'
+bin_struct = 'nine';         % or 'nine'
+nIterations = numel(Grid_cells);
+nPCs = numel(Grid_cells{1});
+bin_types = 9;
+
+%  Initialize Storage 
+allVals = nan(nIterations, nPCs, bin_types);
+
+%  Loop Over Iterations and PCs 
+for iter = 1:nIterations
+    for pc = 2:nPCs
+        disp(['analysing grid map...',num2str(pc)])
+        try
+            map = Grid_cells{iter}{pc}.map;
+            [~, binned] = get_binned_metrics(map, shape, bin_struct);
+            for b = 1:bin_types
+                allVals(iter, pc, b) = binned(b).(metric_name);
+            end
+        catch
+            continue;
+        end
+    end
+end
+
+%  Compute Averages Across PCs and Iterations 
+mean_per_iter = squeeze(mean(allVals, 2, 'omitnan'));  
+means = mean(mean_per_iter, 1, 'omitnan');
+stds  = std(mean_per_iter, 0, 1, 'omitnan');
+
+% plot 
+figure; hold on;
+b = bar(means, 'FaceColor', [0.3 0.5 0.8], 'EdgeColor', 'k', 'FontSize', 15);
+b.LineWidth = 1.5;
+
+% Overlay error bars
+er = errorbar(1:length(means), means, stds, 'k', 'LineStyle', 'none');
+er.LineWidth = 1.5;
+
+% Formatting
+ylabel('Grid Scale', 'FontSize', 20);
+xlabel('Environmental Bin', 'FontSize', 20);
+ylim([0, max(means + stds)*1.2]); 
+
+%% [D]Heat map
+% Reshape
+mean_reshaped = reshape(means, 3, 3);
+
+% Create heatmap
+figure;
+h = heatmap(mean_reshaped, ...
+    'CellLabelColor','none');  
+
+% appearance
+h.GridVisible = 'off';                 % removes grid lines
+h.FontSize = 20;                       % larger font for axis ticks
+h.ColorbarVisible = 'on';              % keep colorbar

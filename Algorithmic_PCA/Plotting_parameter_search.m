@@ -16,7 +16,7 @@ nIterations  = 5;                                        % Number of iterations 
 metricNames  = {'expGrd_h', 'expGrd_s', 'stGrd_h', 'stGrd_s'}; % List of metrics to plot
 threshold    = 0.8;                                      % Threshold for "gridness"
 nPCs         = 250;                                      % Number of principal components
-parameter    = 'Place cell type, and PCA type';               % for plotting
+parameter    = 'Place cell type, and PCA type';          % for plotting
 
 % (2) SETUP
 colors = lines(numel(metricNames));       
