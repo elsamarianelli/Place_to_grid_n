@@ -11,6 +11,7 @@
 % Using Place Cells which can be either:
 %   - Uniformly distributed place cells
 %   - "Tanni-style" place cells: smaller, more densely distributed near boundaries
+%   - You can modulate the size and density seperately
 %
 % Outputs (saved per iteration):
 %   - Place cell configurations (PlaceCellsUni / PlaceCellsTanni)
@@ -37,12 +38,12 @@ use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
                              % and speed angle changes 
                              % thigmotaxis = '#
 trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
-In.shape = 'trapezoid';     % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
+In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = false;           % true = density varies with distance to boundary
-pc_size    = false;          % true = size also varies relatively
+pc_density = true;          % true = density varies with distance to boundary
+pc_size    = true;          % true = size also varies relatively
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)

@@ -88,7 +88,7 @@ bin_types = 9;
 allVals = nan(nIterations, nPCs, bin_types);
 
 %  Loop Over Iterations and PCs 
-for iter = 1:nIterations
+for iter = 3:nIterations
     for pc = 2:nPCs
         disp(['analysing grid map...',num2str(pc)])
         try
