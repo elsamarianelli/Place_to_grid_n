@@ -69,23 +69,24 @@ for m = 1:length(metric_names)
                       [corners, edges, center], 'UniformOutput', false);
 
     % 1 = corners
-    corner_vals_raw = val_mat(1:4);
-    corner_vals = cell2mat(corner_vals_raw(cellfun(@(x) isnumeric(x) && isscalar(x) && ~isnan(x), corner_vals_raw)));
+    corner_vals = cell2mat(val_mat(1:4)); corner_vals = corner_vals(~isnan(corner_vals));
     binned_metrics_three(1).(name) = mean_or_nan(corner_vals);
 
     % 2 = edges
-    edge_vals_raw = val_mat(5:8);
-    edge_vals = cell2mat(edge_vals_raw(cellfun(@(x) isnumeric(x) && isscalar(x) && ~isnan(x), edge_vals_raw)));
+    edge_vals = cell2mat(val_mat(5:8)); edge_vals = edge_vals(~isnan(edge_vals));
     binned_metrics_three(2).(name) = mean_or_nan(edge_vals);
 
     % 3 = center
-    center_val_raw = val_mat{9};
-    if isnumeric(center_val_raw) && isscalar(center_val_raw) && ~isnan(center_val_raw)
-        center_val = center_val_raw;
-    else
-        center_val = NaN;
-    end    
+    center_val = val_mat{9};
     binned_metrics_three(3).(name) = mean_or_nan(center_val);
 end
 end
 
+% Helper: mean with fallback to NaN
+function val = mean_or_nan(data)
+    if isempty(data)
+        val = NaN;
+    else
+        val = mean(data);
+    end
+end

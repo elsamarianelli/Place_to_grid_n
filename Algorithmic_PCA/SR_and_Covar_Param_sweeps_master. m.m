@@ -23,14 +23,6 @@
 
 %% [0] SETUP & PARAMETERS
 
-% Add paths
-addpath('/Users/elsamarianelli/Documents/GitHub')
-addpath('/Users/elsamarianelli/Documents/GitHub/bound_warped_grids_new/Algorithmic_PCA/Functions/')
-addpath('/Users/elsamarianelli/Documents/GitHub/bound_warped_grids_new/General_functions/')
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_PCA\Functions'
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n'
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\General_functions'
-
 % Parameters to set....
 use_SR  = false;             % true = SR matrix, false = Covariance matrix
 use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
@@ -75,6 +67,8 @@ In.polys{1} = [0 trap_add, 349 0, 349 250, 0 250-trap_add, 0 0] + 2;
 In = GenerateEnv(In);   % returns In strucutre now with environemnt info (In.env)
 
 %% MAIN LOOP 
+for param = 1:length(params_list)
+    
 for iter = 1:n_iterations
 
     fprintf('--- Iteration %d/%d ---\n', iter, n_iterations);

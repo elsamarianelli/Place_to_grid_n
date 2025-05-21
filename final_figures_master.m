@@ -1,22 +1,26 @@
 % [1] load in data
-% General parameter sweeps for the simplest version (covar) - 
+% 1)	Method – example firing patterns, illustration of the different 
+% methods of dimensionality reduction
+% 2)	General parameter sweeps for the simplest version (covar) - 
 % specifically changes in place field size with distance to the wall, 
-% 
 % changes in place field density with distance to the wall, 
-% 
 % changes in place field size and density with distance to the wall. 
-% 
 % Plot grid scale and ellipticity in nine areas of the environment, 
-% 
 % bar charts of those parameters in edge, corner, central areas
+% 3)     Then look at the same outputs but for square vs trapezoidal environments - 
+% in this case just comparing grid field statistics betwen the large and small end 
+% of the trapezoid (as in Fig 4 of Krupic et al., 2015)
 
 %% Figure 1 - How does changing density and size parameters of Place cells affect Grids?
+
 %% First, load the data
 folder = '/Users/elsamarianelli/Documents/grids_data/';
 base = 'data_';
-name =    'covar_hasselmo_densityVaried_sizeConstant';
+name =    'covar_hasselmo_densityConstant_sizeVaried';
 basename = [base, name];
-[Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename);
+nIterations =4;
+
+[Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
 
 % initiate folder to save figuyres
 subfolder = fullfile('grids_figures', name);  % or any folder name
@@ -52,7 +56,7 @@ end
 axis equal; set(gca, 'Box', 'on', 'XTick', [], 'YTick', []);
 
 % Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.png'));
+% saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.fig'));
 
 %% [B] Visualise how size of place cells vary 
 figure; 
@@ -63,7 +67,7 @@ for i = 1:10
 end
 
 % Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_B_place.png'));
+saveas(gcf, fullfile(subfolder, 'Figure_B_place.fig'));
 
 %% [b]2 Visualise some grids
 figure; 
@@ -74,70 +78,65 @@ for i = 1:10
 end
 
 % Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_B_grid.png'));
-%% [C] Bar charts and heat maps 
+% saveas(gcf, fullfile(subfolder, 'Figure_B_grid.fig'));
+
+%% [C] evaluate scale and elipse in different environement bins
 % SETTINGS 
-metric_name = 'scale_h';     % e.g., 'expGrd_h', 'scale_h'
-shape = 'hexagon';           % or 'square'
-bin_struct = 'nine';         % or 'nine'
+shape       = 'hexagon';
 nIterations = numel(Grid_cells);
-nPCs = numel(Grid_cells{1});
-bin_types = 9;
+nPCs        = numel(Grid_cells{1});
+% initialise
+metrics_all = cell(nIterations, nPCs);  % Holds per-PC metric structs
 
-%  Initialize Storage 
-allVals = nan(nIterations, nPCs, bin_types);
-
-%  Loop Over Iterations and PCs 
-for iter = 3:nIterations
-    for pc = 2:nPCs
-        disp(['analysing grid map...',num2str(pc)])
+% loop to get metrics for each bin of environment( and also in corner,
+% side, centre configuration for later plotting)
+for iter = 1:nIterations
+    for pc = 1:nPCs
         try
             map = Grid_cells{iter}{pc}.map;
-            [~, binned] = get_binned_metrics(map, shape, bin_struct);
-            for b = 1:bin_types
-                allVals(iter, pc, b) = binned(b).(metric_name);
-            end
-        catch
-            continue;
+            [~, binned_three, binned_nine] = get_binned_metrics(map, shape);
+
+            % Store all bin data (3-bin and 9-bin)
+            metrics_all{iter, pc}.three = binned_three;
+            metrics_all{iter, pc}.nine  = binned_nine;
+
+        catch ME
+            warning("Error iter %d, PC %d: %s", iter, pc, ME.message);
+            metrics_all{iter, pc} = [];  % Still indexable
         end
     end
 end
 
-%  Compute Averages Across PCs and Iterations 
-mean_per_iter = squeeze(mean(allVals, 2, 'omitnan'));  
-means = mean(mean_per_iter, 1, 'omitnan');
-stds  = std(mean_per_iter, 0, 1, 'omitnan');
+%%
+% Compute means & stds
+mean_three = squeeze(mean(mean(allVals_three, 2, 'omitnan'), 1, 'omitnan'));
+std_three = squeeze(std(mean(allVals_three, 2, 'omitnan'), 0, 1, 'omitnan'));
 
-% plot 
-figure; hold on;
-b = bar(means, 'FaceColor', [0.3 0.5 0.8], 'EdgeColor', 'k', 'FontSize', 15);
-b.LineWidth = 1.5;
+% Plot
+figure;
+bar(mean_three, 'FaceColor', [0.3 0.5 0.8], 'EdgeColor', 'k'); hold on;
+errorbar(1:3, mean_three, std_three, 'k.', 'LineWidth', 1.5);
 
-% Overlay error bars
-er = errorbar(1:length(means), means, stds, 'k', 'LineStyle', 'none');
-er.LineWidth = 1.5;
+xticks(1:3); xticklabels({'Corners', 'Edges', 'Center'});
+ylabel('Grid Scale');
+title('Grid Scale by Region');
 
-% Formatting
-ylabel('Grid Scale', 'FontSize', 20);
-xlabel('Environmental Bin', 'FontSize', 20);
-ylim([0, max(means + stds)*1.2]); 
-
-% Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_C_BarChart.png'));
+% Save the figure and vals
+saveas(gcf, fullfile(subfolder, 'Figure_C_BarChart.fig'));
+save(fullfile(subfolder, 'all_binned_metrics.mat'), 'allVals', 'means', 'stds', 'metric_name', 'shape', 'bin_struct');
 
 %% [D]Heat map
-% Reshape
-mean_reshaped = reshape(means, 3, 3);
+% Compute mean over iterations and PCs
+mean_3x3 = reshape(mean(allVals_nine, [1,2], 'omitnan'), 3, 3);
 
-% Create heatmap
 figure;
-h = heatmap(mean_reshaped, ...
-    'CellLabelColor','none');  
+imagesc(mean_3x3);
+colorbar;
+title('Mean Grid Scale (3x3 Environment Bins)');
+axis off;
 
-% appearance
-h.GridVisible = 'off';                 % removes grid lines
-h.FontSize = 20;                       % larger font for axis ticks
-h.ColorbarVisible = 'on';              % keep colorbar
+saveas(gcf, fullfile(subfolder, 'Figure_D_HeatMap.fig'));
+%% ellipse fitting
 
-% Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_D_HeatMap.png'));
+
+
