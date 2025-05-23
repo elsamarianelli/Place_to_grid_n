@@ -12,38 +12,45 @@ mini_maps = mat2cell(full_map, row_blocks, col_blocks);
 % [2] Get SACs for each mini-map
 binned_sac = cellfun(@xPearson, mini_maps, 'UniformOutput', false);
 
-% % [visualiing]
-% figure;
-% t = tiledlayout(3, 3, 'Padding', 'none', 'TileSpacing', 'none');
-% 
-% for i = 1:3
-%     for j = 1:3
-%         nexttile((i - 1) * 3 + j);
-%         imagesc(mini_maps{i, j});
-%         axis off equal tight;
-%     end
-% end
-% figure; imagesc(full_map)
-
 % [3] Prepare storage for metrics
 metric_names = {'stGrd_h', 'expGrd_h', 'scale_h', 'eccent', 'orient', 'xyScale', 'abScale'};
 binned_metrics_nine = struct();
 binned_metrics_three = struct();
 
+
 % [4] Process each bin: ellipse fit, correct SAC, and compute metrics
+
+
 for i = 1:3
     for j = 1:3
         sac = binned_sac{i,j};
         map = mini_maps{i,j};
 
         try
-            [xyScale, eccent, orient, abScale] = gridEllipse_fit(sac, false);
-            regSac = gridEllipse_correct(sac, abScale, orient);
-            [stGrd, expGrd, scale] = multiGridness(regSac, shape, false, map);
+            % normal version
+            [stGrd, expGrd, scale] = multiGridness(sac, shape, false, map);
+            % elipse version - essentially fits ellipse, rescales 
+            figure;
+            [xyScale, eccent, orient, abScale] = gridEllipse_fit(sac, true);
+            saveas(gcf, fullfile('grids_figures/ellipse_fit_example', [num2str(i),'i_', num2str(j), 'j_ellipseSac', '.fig']));
+            saveas(map, fullfile('grids_figures/ellipse_fit_example', [num2str(i),'i_', num2str(j), 'j_map', '.fig']));
+            
+            % debugged this funcction so should get circle now!
+            regSac = gridEllipse_correct(sac, abScale, orient); 
+            [xyScale, eccent, orient, abScale] = gridEllipse_fit(sac, true);
 
+            [stGrd_el, expGrd_el, scale_el] = multiGridness(regSac, shape, false, map);
+
+            % figure; subplot(1, 3, 1); imagesc(sac);
+            % subplot(1, 3, 2); imagesc(regSac)
+       
+            % save
             binned_metrics_nine(i,j).stGrd_h = stGrd;
             binned_metrics_nine(i,j).expGrd_h = expGrd;
             binned_metrics_nine(i,j).scale_h = scale;
+            binned_metrics_nine(i,j).stGrd_h_el = stGrd_el;
+            binned_metrics_nine(i,j).expGrd_h_el = expGrd_el;
+            binned_metrics_nine(i,j).scale_h_el = scale_el;
             binned_metrics_nine(i,j).eccent = eccent;
             binned_metrics_nine(i,j).orient = orient;
             binned_metrics_nine(i,j).xyScale = xyScale;
@@ -69,24 +76,23 @@ for m = 1:length(metric_names)
                       [corners, edges, center], 'UniformOutput', false);
 
     % 1 = corners
-    corner_vals = cell2mat(val_mat(1:4)); corner_vals = corner_vals(~isnan(corner_vals));
+    corner_vals_raw = val_mat(1:4);
+    corner_vals = cell2mat(corner_vals_raw(cellfun(@(x) isnumeric(x) && isscalar(x) && ~isnan(x), corner_vals_raw)));
     binned_metrics_three(1).(name) = mean_or_nan(corner_vals);
 
     % 2 = edges
-    edge_vals = cell2mat(val_mat(5:8)); edge_vals = edge_vals(~isnan(edge_vals));
+    edge_vals_raw = val_mat(5:8);
+    edge_vals = cell2mat(edge_vals_raw(cellfun(@(x) isnumeric(x) && isscalar(x) && ~isnan(x), edge_vals_raw)));
     binned_metrics_three(2).(name) = mean_or_nan(edge_vals);
 
     % 3 = center
-    center_val = val_mat{9};
+    center_val_raw = val_mat{9};
+    if isnumeric(center_val_raw) && isscalar(center_val_raw) && ~isnan(center_val_raw)
+        center_val = center_val_raw;
+    else
+        center_val = NaN;
+    end    
     binned_metrics_three(3).(name) = mean_or_nan(center_val);
 end
 end
 
-% Helper: mean with fallback to NaN
-function val = mean_or_nan(data)
-    if isempty(data)
-        val = NaN;
-    else
-        val = mean(data);
-    end
-end

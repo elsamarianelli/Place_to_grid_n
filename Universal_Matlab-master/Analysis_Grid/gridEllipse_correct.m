@@ -13,6 +13,7 @@ function [ regSac ] = gridEllipse_correct( sac, abScale, orient  )
 % abScale - scale of major and minor axis
 % orient - orientation in deg of major axis antiC from x-axis
 
+%EM debugging - imrotate takes degrees but orient is in radians
 %--- House keeping
 abScale=sort(abScale, 'descend'); %Sometimes ab scale is mixed up - major shoudl be first
 
@@ -26,7 +27,7 @@ end
 
 %Grids aren't regular to start to regularise
 %1)First rotate so major axis aligns to x-axis
-regSac=imrotate(sac, -orient, 'bilinear');
+regSac=imrotate(sac, -rad2deg(orient), 'bilinear');
 
 %2)Decide by how much to resize - major axis is x so work on y axis to
 %bring to same scale
@@ -41,7 +42,7 @@ xEnd=sacSize(2);
 regSac=interp2(regSac, linspace(xStart,xEnd, sacSize(2)), linspace(yStart, yEnd, sacSize(1))');
 
 %4) Rotate back to original orientation
-regSac=imrotate(regSac, orient, 'bilinear');
+regSac=imrotate(regSac, rad2deg(orient), 'bilinear');
 
 %5) Finally keep onlyl the central porition of the sac so that it matches
 %the original size

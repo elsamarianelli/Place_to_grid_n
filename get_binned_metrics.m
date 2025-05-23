@@ -12,43 +12,47 @@ mini_maps = mat2cell(full_map, row_blocks, col_blocks);
 % [2] Get SACs for each mini-map
 binned_sac = cellfun(@xPearson, mini_maps, 'UniformOutput', false);
 
-% % [visualiing]
-% figure;
-% t = tiledlayout(3, 3, 'Padding', 'none', 'TileSpacing', 'none');
-% 
-% for i = 1:3
-%     for j = 1:3
-%         nexttile((i - 1) * 3 + j);
-%         imagesc(mini_maps{i, j});
-%         axis off equal tight;
-%     end
-% end
-% figure; imagesc(full_map)
-
 % [3] Prepare storage for metrics
-metric_names = {'stGrd_h', 'expGrd_h', 'scale_h', 'eccent', 'orient', 'xyScale', 'abScale'};
+metric_names = {'stGrd_h', 'expGrd_h', 'scale_h', 'eccent', 'orient', 'xyScale', 'abScale', 'ellipicity'};
 binned_metrics_nine = struct();
 binned_metrics_three = struct();
 
+
 % [4] Process each bin: ellipse fit, correct SAC, and compute metrics
+
+
 for i = 1:3
     for j = 1:3
         sac = binned_sac{i,j};
         map = mini_maps{i,j};
 
         try
-            [xyScale, eccent, orient, abScale] = gridEllipse_fit(sac, false);
-            regSac = gridEllipse_correct(sac, abScale, orient);
-            [stGrd, expGrd, scale] = multiGridness(regSac, shape, false, map);
-
+            % normal version
+            [stGrd, expGrd, scale] = multiGridness(sac, shape, false, map);
+            % elipse version - essentially fits ellipse, rescales 
+            % figure;
+            [xyScale, eccent, orient, abScale, ellip] = gridEllipse_fit(sac, false);
+            % saveas(gcf, fullfile('grids_figures/ellipse_fit_example', [num2str(i),'i_', num2str(j), 'j_ellipseSac', '.fig']));
+            % saveas(map, fullfile('grids_figures/ellipse_fit_example', [num2str(i),'i_', num2str(j), 'j_map', '.fig']));
+            % % 
+            % debugged this funcction so should get circle now!
+            regSac = gridEllipse_correct(sac, abScale, orient); 
+            [stGrd_el, expGrd_el, scale_el] = multiGridness(regSac, shape, false, map);
+            % title([num2str(i), num2str(j)])
+            
+       
+            % save
             binned_metrics_nine(i,j).stGrd_h = stGrd;
             binned_metrics_nine(i,j).expGrd_h = expGrd;
             binned_metrics_nine(i,j).scale_h = scale;
+            binned_metrics_nine(i,j).stGrd_h_el = stGrd_el;
+            binned_metrics_nine(i,j).expGrd_h_el = expGrd_el;
+            binned_metrics_nine(i,j).scale_h_el = scale_el;
             binned_metrics_nine(i,j).eccent = eccent;
             binned_metrics_nine(i,j).orient = orient;
             binned_metrics_nine(i,j).xyScale = xyScale;
             binned_metrics_nine(i,j).abScale = abScale;
-
+            binned_metrics_nine(i,j).ellipicity = ellip;
         catch
             % In case of any failure, assign NaNs
             for m = 1:length(metric_names)

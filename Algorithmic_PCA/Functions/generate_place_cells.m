@@ -1,4 +1,4 @@
-function [PlaceCells, In.env] = generate_place_cells(In, pc_density, pc_size)
+function [PlaceCells, In] = generate_place_cells(In, pc_density, pc_size)
 % GENERATE_PLACE_CELLS Generates place cells with controllable density and field size
 % 
 %   [PlaceCells, env] = generate_place_cells(In, pc_density, pc_size)

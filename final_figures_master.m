@@ -16,7 +16,7 @@
 %% First, load the data
 folder = '/Users/elsamarianelli/Documents/grids_data/';
 base = 'data_';
-name =    'covar_hasselmo_densityConstant_sizeVaried';
+name =    'covar_hasselmo_densityVaried_sizeVaried';
 basename = [base, name];
 nIterations =4;
 
@@ -56,7 +56,7 @@ end
 axis equal; set(gca, 'Box', 'on', 'XTick', [], 'YTick', []);
 
 % Save the figure
-% saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.fig'));
+saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.fig'));
 
 %% [B] Visualise how size of place cells vary 
 figure; 
@@ -78,14 +78,16 @@ for i = 1:10
 end
 
 % Save the figure
-% saveas(gcf, fullfile(subfolder, 'Figure_B_grid.fig'));
+saveas(gcf, fullfile(subfolder, 'Figure_B_grid.fig'));
 
 %% [C] evaluate scale and elipse in different environement bins
+
 % SETTINGS 
 shape       = 'hexagon';
 nIterations = numel(Grid_cells);
 nPCs        = numel(Grid_cells{1});
-% initialise
+
+% initialise storage
 metrics_all = cell(nIterations, nPCs);  % Holds per-PC metric structs
 
 % loop to get metrics for each bin of environment( and also in corner,
@@ -107,36 +109,95 @@ for iter = 1:nIterations
     end
 end
 
-%%
-% Compute means & stds
-mean_three = squeeze(mean(mean(allVals_three, 2, 'omitnan'), 1, 'omitnan'));
-std_three = squeeze(std(mean(allVals_three, 2, 'omitnan'), 0, 1, 'omitnan'));
+%%  Plot BAR CHARTS of mean ± std 
+metrics = {'expGrd_h', 'scale_h', 'eccent', ...
+    'orient', 'ellipicity'};
 
-% Plot
-figure;
-bar(mean_three, 'FaceColor', [0.3 0.5 0.8], 'EdgeColor', 'k'); hold on;
-errorbar(1:3, mean_three, std_three, 'k.', 'LineWidth', 1.5);
+for m=1:numel(metrics)
+    metric = metrics{m};
+    nIterations = 4;        % Number of iterations
+    nPCs =250;            % Number of cells per iteration
+    region_count = 3;                        % Corners, Edges, Center
+    
+    % Initialize matrix: [nIterations x 3]
+    mean_vals = nan(nIterations, region_count);
+    
+    for iter = 1:nIterations
+        vals = nan(nPCs, region_count);
+        for pc = 1:nPCs         
+           vals(pc, :) =arrayfun(@(s) s.(metric), metrics_all{iter, pc}.three);
+        end
+        % Mean across cells for each region (omit NaNs)
+        mean_vals(iter, :) = mean(vals, 1, 'omitnan');
+    end
+    
+    % === Compute means and stds across iterations ===
+    grand_mean = mean(mean_vals, 1, 'omitnan');
+    grand_std  = std(mean_vals, 0, 1, 'omitnan');
+    
+    % === Plot ===
+    figure; hold on;
+    bar_x = 1:region_count;
+    b = bar(bar_x, grand_mean, 'FaceColor', [0.3 0.6 0.8], 'EdgeColor', 'k', 'LineWidth', 1.5);
+    
+    % Add error bars
+    er = errorbar(bar_x, grand_mean, grand_std, 'k', ...
+        'LineStyle', 'none', 'LineWidth', 1.8);
+    
+    % Formatting
+    set(gca, 'XTick', bar_x, 'XTickLabel', {'Corners', 'Edges', 'Center'}, 'FontSize', 16);
+    ylabel(strrep(metric, '_', '\_'), 'FontSize', 18);
+    xlabel('Environment Region', 'FontSize', 18);
+    title(['Mean ' strrep(metric, '_', '\_') ' Across Regions'], 'FontSize', 20);
+    box off;
+    % Optional: Save
+    saveas(gcf, fullfile(subfolder, ['Barchart_' metric '.fig']));
 
-xticks(1:3); xticklabels({'Corners', 'Edges', 'Center'});
-ylabel('Grid Scale');
-title('Grid Scale by Region');
+end
 
-% Save the figure and vals
-saveas(gcf, fullfile(subfolder, 'Figure_C_BarChart.fig'));
-save(fullfile(subfolder, 'all_binned_metrics.mat'), 'allVals', 'means', 'stds', 'metric_name', 'shape', 'bin_struct');
+%% PLOT HEAT MAPS
+% === Settings ===
+metric_names = metrics;
+nBins = 9;
+nMetrics = numel(metric_names);
+bin_dims = [3, 3];  % For reshaping heatmaps
 
-%% [D]Heat map
-% Compute mean over iterations and PCs
-mean_3x3 = reshape(mean(allVals_nine, [1,2], 'omitnan'), 3, 3);
+% === Loop through metrics ===
+for m = 1:nMetrics
+    metric = metric_names{m};
+    all_vals = nan(nIterations, nPCs, nBins);  % Preallocate
 
-figure;
-imagesc(mean_3x3);
-colorbar;
-title('Mean Grid Scale (3x3 Environment Bins)');
-axis off;
+    for iter = 1:nIterations
+        for pc = 1:nPCs
+            try
+                bin_data = metrics_all{iter, pc}.nine;
+                for b = 1:nBins
+                    val = bin_data(b).(metric);
+                    if isnumeric(val) && isscalar(val) && ~isnan(val)
+                        all_vals(iter, pc, b) = val;
+                    end
+                end
+            catch
+                continue;
+            end
+        end
+    end
 
-saveas(gcf, fullfile(subfolder, 'Figure_D_HeatMap.fig'));
-%% ellipse fitting
+    % === Average across PCs and iterations ===
+    mean_vals = squeeze(mean(mean(all_vals, 2, 'omitnan'), 1));  % 1 x 9
+    heat_data = reshape(mean_vals, bin_dims);  % 3x3 grid
 
+    % === Plot ===
+    figure('Color','w');
+    h = heatmap(heat_data, ...
+        'CellLabelColor', 'none', ...
+        'Colormap', parula, ...
+        'ColorbarVisible', 'on');
+    title(metric)
+    h.GridVisible = 'off';
+    h.FontSize = 14;
 
+    % Optional: Save
+    saveas(gcf, fullfile(subfolder, ['Heatmap_' metric '.fig']));
 
+end
