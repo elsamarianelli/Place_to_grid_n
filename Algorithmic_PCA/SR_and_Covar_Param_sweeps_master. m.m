@@ -31,6 +31,7 @@ use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
                              % thigmotaxis = '#
 trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
 In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
+NonNegative = false;         % non negative PCA option - note, require different place cell cosntraints?
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
@@ -103,6 +104,7 @@ for iter = 1:n_iterations
 
     fprintf('Creating Grid Cells via %s\n', method_tag);
 
+    if ~NonNegative
     if use_SR % SR Matrix
         M = ones(In.n_cells); R = ones(In.n_cells);
         [M, ~] = trainModel(Cells, M, R, traj, 1);
@@ -114,6 +116,44 @@ for iter = 1:n_iterations
         eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false);
     end
 
+    elseif NonNegative
+    %  Using "Montanari A, Richard E. Non-negative principal component analysis  
+    %  Message Passing Algorithms and Sharp Asymptotics" approach. (FISTA would
+    %  be faster though).
+        r_saved = NeuronxTimeMat;
+        L = length(NeuronxTimeMat);
+        zero_mean = 'spatial';
+
+        for z=1:NumberOfPC 
+            
+            % zero-mean input data
+            if strcmp(zero_mean, 'spatial')
+                meanInputMat = mean(r_saved,2);
+                InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,1,L);
+            elseif strcmp(zero_mean, 'temporal')
+                meanInputMat = mean(r_saved,1);
+                InputMatFixed = r_saved(:,1:L) - repmat(meanInputMat,size(format_1,1),1);
+            end
+        
+            % Using Montanari A, Richard E. Non-negative principal component analysis 
+            PC_NN(:,z) = NNPCA2014(InputMatFixed);
+        
+            % break if nans
+            if sum( isnan(PC_NN(:,z))) > 1
+                fprintf('NaNs!! breaking...\n');
+                break;
+            end
+        
+            % calculate the corresponding eigenvalue
+            alpha1(:,z) = PC_NN(:,z)'*(InputMatFixed*InputMatFixed' )*PC_NN(:,z);
+        
+            % subtract the projection of the data on the 1st eigenvector 
+            % from the data, and reuse the "new data" for the next PC calc.
+            r_saved = InputMatFixed - PC_NN(:,z) * (PC_NN(:,z)'*InputMatFixed);
+        
+        end
+    end
+     
     %% [5] Compute Grid Metrics
 
     fprintf('Computing Gridness Metrics...\n');
@@ -130,7 +170,6 @@ for iter = 1:n_iterations
         % to Principle component vectors and average
             map = comb_fields(NeuronxEnvMat, eigvec(:, PC)); 
         end
-    
 
         map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
         sac = xPearson(map); % spatial autocorrelogram

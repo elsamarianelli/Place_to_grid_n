@@ -1,4 +1,5 @@
 % [1] load in data
+
 % 1)	Method – example firing patterns, illustration of the different 
 % methods of dimensionality reduction
 % 2)	General parameter sweeps for the simplest version (covar) - 

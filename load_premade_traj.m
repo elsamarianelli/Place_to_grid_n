@@ -1,8 +1,8 @@
 function traj = load_premade_traj(iter)
 
 % Define trajectory folder path
-% traj_folder = fullfile(pwd, 'Place_to_grid_n', 'premade_traj_and_env'); % Relative to Place_to_grid_n
-traj_folder = fullfile(pwd, 'grids_data', 'premade_traj_and_env'); % Relative to Place_to_grid_n
+traj_folder = fullfile(pwd, 'premade_traj_and_env'); % Relative to Place_to_grid_n
+% traj_folder = fullfile(pwd, 'grids_data', 'premade_traj_and_env'); % Relative to Place_to_grid_n
 
 % Get list of all saved trajectory files
 traj_files = dir(fullfile(traj_folder, 'trajectory_*.mat'));

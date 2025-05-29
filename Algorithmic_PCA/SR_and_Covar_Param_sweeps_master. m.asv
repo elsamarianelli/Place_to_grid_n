@@ -31,7 +31,7 @@ use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
                              % thigmotaxis = '#
 trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
 In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
-
+NonNegative = false;         % non negative PCA option - note, require different place cell cosntraints?
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
 pc_density = false;          % true = density varies with distance to boundary
@@ -93,7 +93,7 @@ for iter = 1:n_iterations
     elseif strcmp(traj_tag, 'thigmotaxis')%
             %To DO - generate different type of 
     end
-figure; plot(traj(:,1), traj(:,2), '-', Color, 'k'
+
     %% [3] Generate Place Cells
     fprintf('Generating Place Cells...\n');
     [Cells, In] = generate_place_cells(In, pc_density, pc_size);

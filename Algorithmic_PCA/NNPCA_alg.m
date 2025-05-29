@@ -23,33 +23,43 @@
 % (although trajectory here is not generated with periodic boundary 
 % condition as in neural net version).
 
-%% [1] Generating fr for pcs across whole trajectory (reformated)
+%% [0] SETUP & PARAMETERS
 
-% clear existing variables and add paths
-clear all; close all; 
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\General_functions'
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_PCA\Functions'
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\boundary_warped_place2grid\Neural_net'
-addpath 'C:\Users\Elsa Marianelli\Documents\GitHub\Place_to_grid_n\Algorithmic_PCA'
+% Parameters to set....
+use_SR  = false;             % true = SR matrix, false = Covariance matrix
+use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
+                             % hasselmo = standard one with wall avoidance
+                             % and speed angle changes 
+                             % thigmotaxis = '#
+trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
+In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
 
-% Define environment dimensions and the number of cells
-dim_x = 300; dim_y = 250;
-n_polys = 1; polys = cell(n_polys, 1);
-polys{1} = [0 0, dim_x-2, 0, dim_x-2 dim_y-2, 0 dim_y-2, 0 0] + 2; 
-n_cells = 2000;
-n_steps = 500000;
-speed = 10;
+% Place Cell controls - both true = tanni, both false = uniform, can vary
+% independantly % to run - true true, false false, true flase
+pc_density = false;          % true = density varies with distance to boundary
+pc_size    = false;          % true = size also varies relatively
 
-% Generating Environment
-env = GenerateEnv(polys, dim_x, dim_y, 'trapezoid');
+% Additional parameters and environemnt details...should remain constant...
+In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
+n_iterations = 5;
+In.n_cells = 250;               % number of place cells
+In.n_steps = 150000;             % trajectory length
+In.dim_x = 351;                 % environment dimensions
+In.dim_y = 252;
+In.n_polys = 1;
+In.NumberOfPC = In.n_cells; % number of princ comps - should be the same as the number of place cells
+In.bound_ctrl = 2;
+            
+% Folder naming tags - vary according to settings
+base_dir = 'grids_data';
+method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
+traj_tag = use_traj; 
+density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
+size_tag = 'sizeVaried' ; if ~ pc_size; size_tag = 'sizeConstant'; end
 
-% create folder to store some runs
-main_folder = 'results_NNPCA_alg';
-if ~isfolder(main_folder)
-    mkdir(main_folder);
-end
-
-n_iter = 10;
+fprintf('Generating Environment...\n');
+In.polys{1} = [0 trap_add, (In.dim_x-2) 0, (In.dim_x-2) (In.dim_y-2), 0 ((In.dim_y-2)-trap_add), 0 0] + 2;  
+In = GenerateEnv(In);   % returns In strucutre now with environemnt info (In.env)
 
 for iter = 1:n_iter  
     
@@ -62,7 +72,7 @@ for iter = 1:n_iter
     
     % Generating Trajectory
     % [a] Hasselmo trajectory - turns away from boundaries, velocity is altered
-    traj = generate_trajectory(env, n_steps);
+    traj = generate_trajectory(In.env, In.n_steps);
     
     % [b] OR simpler random walk trajectory (ken's)
     % steps = (cumsum(randn(n_steps,2))*speed)+1;
@@ -90,7 +100,7 @@ for iter = 1:n_iter
     %% [2] Generate grids - with pca and nn pca (zero mean input)
     %  NNPCA subtracts projection of each PC ouput from data before calculating next PC
     
-    NumberOfPC = 35;       % number of principle components to be generated (heirarchical structure)
+    NumberOfPC = 250;       % number of principle components to be generated (heirarchical structure)
     zero_mean = 'spatial'; % option for how to zero-mean input data
     
     % [a] standard PCA (zero mean input data)
@@ -135,43 +145,41 @@ for iter = 1:n_iter
 
 end
 
-% %% Looking across multiple iterations of data 
-% % Settings: dim_x = 300; dim_y = 250; n_cells = 2000; n_steps = 500000; speed = 10;
-% subfolders = dir(fullfile(main_folder, 'results_iter_*'));
-% result_metrics = cell(n_iter, 1);
-% 
-% for iter = 1:n_iter
-% 
-%     % [1] load 
-%     subfolder_path = fullfile(main_folder, ['results_iter_', num2str(iter)]);
-%     file_path = fullfile(subfolder_path, ['results', num2str(iter), '.mat']);
-%     data = load(file_path);
-% 
-%     % [2] generate grid metrics for each reprojected principle component
-%     for PC = 1:NumberOfPC
-% 
-%         disp(PC)
-% 
-%         % reproject each PC into 2d space for non negative nd standard
-%         % conditions
-%         map_NN = comb_fields(data.format_1, data.PC_NN(:,PC));
-%         map_S  = comb_fields(data.format_1, data.PC_Standard(:,PC));
-%         map = data.PC_NN(:,PC);
-%         sac = xPearson(map);
-% 
-%         % Pass sac to autoCorrProps to get metrics (not binned as scales
-%         % too small)
-%         in.sac = sac;
-%         in.PLOT_ON = false; hold on;
-%         in.PLOT_Ellipse_ON = false;
-%         metrics = autoCorrProps(in); % should be one with EM comments which has ellipse function
-% 
-%         % save
-%         result_metrics(n_iter) = metrics;
-% 
-%     end
-% 
-% end
+%% Looking across multiple iterations of data 
+% Settings: dim_x = 300; dim_y = 250; n_cells = 2000; n_steps = 500000; speed = 10;
+subfolders = dir(fullfile(main_folder, 'results_iter_*'));
+result_metrics = cell(n_iter, 1);
+
+for iter = 1:n_iter
+
+    % [1] load 
+    subfolder_path = fullfile(main_folder, ['results_iter_', num2str(iter)]);
+    file_path = fullfile(subfolder_path, ['results', num2str(iter), '.mat']);
+    data = load(file_path);
+
+    % [2] generate grid metrics for each reprojected principle component
+
+        disp(PC)
+        % reproject each PC into 2d space for non negative nd standard
+        % conditions
+        map_NN = comb_fields(data.format_1, data.PC_NN(:,PC));
+        map_S  = comb_fields(data.format_1, data.PC_Standard(:,PC));
+        map = data.PC_NN(:,PC);
+        sac = xPearson(map);
+
+        % Pass sac to autoCorrProps to get metrics (not binned as scales
+        % too small)
+        in.sac = sac;
+        in.PLOT_ON = false; hold on;
+        in.PLOT_Ellipse_ON = false;
+        metrics = autoCorrProps(in); % should be one with EM comments which has ellipse function
+
+        % save
+        result_metrics(n_iter) = metrics;
+
+    end
+
+end
 % 
 % 
 % %% for single iteration....
