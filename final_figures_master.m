@@ -71,9 +71,9 @@ saveas(gcf, fullfile(subfolder, 'Figure_B_place.fig'));
 
 %% [b]2 Visualise some grids
 figure; 
-for i = 1:10
-    map = Grid_cells{1}{i*3}.map;
-    subplot(2, 5, i); imagesc(map)
+for i = 1:40
+    map = Grid_cells{1}{i*4}.map;
+    subplot(4, 10, i); imagesc(map); colormap("parula")
     axis off; axis image      
 end
 
@@ -110,7 +110,7 @@ for iter = 1:nIterations
 end
 
 %%  Plot BAR CHARTS of mean ± std 
-metrics = {'expGrd_h', 'scale_h', 'eccent', ...
+metrics = {'expGrd_h_el', 'scale_h_el', 'eccent', ...
     'orient', 'ellipicity'};
 
 for m=1:numel(metrics)
@@ -151,7 +151,7 @@ for m=1:numel(metrics)
     title(['Mean ' strrep(metric, '_', '\_') ' Across Regions'], 'FontSize', 20);
     box off;
     % Optional: Save
-    saveas(gcf, fullfile(subfolder, ['Barchart_' metric '.fig']));
+    % saveas(gcf, fullfile(subfolder, ['Barchart_' metric '.fig']));
 
 end
 

@@ -13,7 +13,7 @@ mini_maps = mat2cell(full_map, row_blocks, col_blocks);
 binned_sac = cellfun(@xPearson, mini_maps, 'UniformOutput', false);
 
 % [3] Prepare storage for metrics
-metric_names = {'stGrd_h', 'expGrd_h', 'scale_h', 'eccent', 'orient', 'xyScale', 'abScale', 'ellipicity'};
+metric_names = {'stGrd_h', 'expGrd_h', 'scale_h','stGrd_h_el', 'expGrd_h_el', 'scale_h_el', 'eccent', 'orient', 'xyScale', 'abScale', 'ellipicity'};
 binned_metrics_nine = struct();
 binned_metrics_three = struct();
 

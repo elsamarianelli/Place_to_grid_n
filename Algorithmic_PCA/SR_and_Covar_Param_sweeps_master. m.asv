@@ -34,16 +34,16 @@ In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or tra
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = true;          % true = density varies with distance to boundary
-pc_size    = true;          % true = size also varies relatively
+pc_density = false;          % true = density varies with distance to boundary
+pc_size    = false;          % true = size also varies relatively
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
 In.n_cells = 250;               % number of place cells
 In.n_steps = 150000;             % trajectory length
-In.dim_x = 500;                 % environment dimensions
-In.dim_y = 400;
+In.dim_x = 351;                 % environment dimensions
+In.dim_y = 252;
 In.n_polys = 1;
 In.NumberOfPC = In.n_cells; % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
@@ -93,7 +93,7 @@ for iter = 1:n_iterations
     elseif strcmp(traj_tag, 'thigmotaxis')%
             %To DO - generate different type of 
     end
-
+figure; plot(traj(:,1), traj(:,2), '-', Color, 'k'
     %% [3] Generate Place Cells
     fprintf('Generating Place Cells...\n');
     [Cells, In] = generate_place_cells(In, pc_density, pc_size);
@@ -119,8 +119,10 @@ for iter = 1:n_iterations
     fprintf('Computing Gridness Metrics...\n');
     GC_metrics = cell(In.n_cells, 1);
     h = waitbar(0, 'Processing PCs...');
+
     for PC = 1:In.n_cells
         waitbar(PC / In.n_cells, h);
+
         if use_SR
             map = cells{PC}.grid; % grid already calculated before
         else
@@ -128,8 +130,8 @@ for iter = 1:n_iterations
         % to Principle component vectors and average
             map = comb_fields(NeuronxEnvMat, eigvec(:, PC)); 
         end
-        imagesc(map)
-    end
+    
+
         map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
         sac = xPearson(map); % spatial autocorrelogram
 

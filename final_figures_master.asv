@@ -16,7 +16,7 @@
 %% First, load the data
 folder = '/Users/elsamarianelli/Documents/grids_data/';
 base = 'data_';
-name =    'covar_hasselmo_densityConstant_sizeVaried';
+name =    'covar_hasselmo_densityVaried_sizeConstant';
 basename = [base, name];
 nIterations =4;
 
@@ -56,7 +56,7 @@ end
 axis equal; set(gca, 'Box', 'on', 'XTick', [], 'YTick', []);
 
 % Save the figure
-% saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.fig'));
+saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.fig'));
 
 %% [B] Visualise how size of place cells vary 
 figure; 
@@ -71,14 +71,14 @@ saveas(gcf, fullfile(subfolder, 'Figure_B_place.fig'));
 
 %% [b]2 Visualise some grids
 figure; 
-for i = 1:10
-    map = Grid_cells{1}{i*3}.map;
-    subplot(2, 5, i); imagesc(map)
+for i = 1:100
+    map = Grid_cells{1}{i*2}.map;
+    subplot(10, 10, i); imagesc(map)
     axis off; axis image      
 end
 
 % Save the figure
-% saveas(gcf, fullfile(subfolder, 'Figure_B_grid.fig'));
+saveas(gcf, fullfile(subfolder, 'Figure_B_grid.fig'));
 
 %% [C] evaluate scale and elipse in different environement bins
 
@@ -108,11 +108,10 @@ for iter = 1:nIterations
         end
     end
 end
-  
 
 %%  Plot BAR CHARTS of mean ± std 
-metrics = {'stGrd_h', 'expGrd_h', 'scale_h', 'eccent', ...
-    'orient', 'xyScale', 'abScale'};
+metrics = {'expGrd_h_el', 'scale_h_el', 'eccent', ...
+    'orient', 'ellipicity'};
 
 for m=1:numel(metrics)
     metric = metrics{m};
@@ -151,11 +150,14 @@ for m=1:numel(metrics)
     xlabel('Environment Region', 'FontSize', 18);
     title(['Mean ' strrep(metric, '_', '\_') ' Across Regions'], 'FontSize', 20);
     box off;
+    % Optional: Save
+    % saveas(gcf, fullfile(subfolder, ['Barchart_' metric '.fig']));
 
 end
+
 %% PLOT HEAT MAPS
 % === Settings ===
-metric_names = {'scale_h', 'eccent', 'orient', 'xyScale'};  % Add/remove as needed
+metric_names = metrics;
 nBins = 9;
 nMetrics = numel(metric_names);
 bin_dims = [3, 3];  % For reshaping heatmaps
@@ -191,10 +193,11 @@ for m = 1:nMetrics
         'CellLabelColor', 'none', ...
         'Colormap', parula, ...
         'ColorbarVisible', 'on');
-    title(strrep(metric, '_', '\_'), 'FontSize', 16)
+    title(metric)
     h.GridVisible = 'off';
     h.FontSize = 14;
 
     % Optional: Save
-    saveas(gcf, ['Heatmap_' metric '.png']);
+    saveas(gcf, fullfile(subfolder, ['Heatmap_' metric '.fig']));
+
 end
