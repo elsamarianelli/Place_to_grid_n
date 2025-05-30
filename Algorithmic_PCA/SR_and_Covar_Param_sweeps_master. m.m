@@ -35,14 +35,14 @@ NonNegative = false;         % non negative PCA option - note, require different
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = false;          % true = density varies with distance to boundary
+pc_density = false;         % true = density varies with distance to boundary
 pc_size    = false;          % true = size also varies relatively
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
 In.n_cells = 250;               % number of place cells
-In.n_steps = 150000;             % trajectory length
+In.n_steps = 36000;             % trajectory length
 In.dim_x = 351;                 % environment dimensions
 In.dim_y = 252;
 In.n_polys = 1;
@@ -50,9 +50,9 @@ In.NumberOfPC = In.n_cells; % number of princ comps - should be the same as the 
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data';
+base_dir = 'grids_data'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
-traj_tag = use_traj; 
+traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
 size_tag = 'sizeVaried' ; if ~ pc_size; size_tag = 'sizeConstant'; end
 
@@ -88,35 +88,57 @@ for iter = 1:n_iterations
         traj_cov = unique(combinations((1:In.dim_x)', (1:In.dim_y)'));  
         % double up so the number of steps is roughtly the same as whats used in SR
         traj = table2array([traj_cov; traj_cov]);
+
     elseif strcmp(traj_tag, 'hasselmo')    
         traj = load_premade_traj(iter);
         traj = traj(1:In.n_steps, :);  % trim to desired length
+        
     elseif strcmp(traj_tag, 'thigmotaxis')%
+
             %To DO - generate different type of 
     end
 
     %% [3] Generate Place Cells
     fprintf('Generating Place Cells...\n');
-    [Cells, In] = generate_place_cells(In, pc_density, pc_size);
-    save(fullfile(subfolder, 'orig_place_cells.mat'), 'Cells');
+    % if pc_density varies with boundary distance generate normally, if
+    % not, then make sure that the average firing rate is equal to that of
+    % the tanni place cell setting (parameter sweep to find best fw)
 
+    if pc_density & pc_size
+        [Cells, In] = generate_place_cells(In, pc_density, pc_size);
+
+    else 
+        fprintf('Ensuring firing rate is equal ');
+        [TanniCells, In] = generate_place_cells(In, true, true);
+        % Tune uniform field width to match mean population activity
+        [max_iters, tolerance] = deal(20, 0.01);
+        [best_width, UniCells, history] = tune_pf_width_to_match_activity( ...
+            In, TanniCells, max_iters, tolerance, pc_density, pc_size);
+        % Use tuned width to generate Place Cells
+        In.pf_width_cntrl = best_width;
+        [Cells, In] = generate_place_cells(In, pc_density, pc_size);
+    end
+
+    save(fullfile(subfolder, 'orig_place_cells.mat'), 'Cells')
     %% [4] Generate SR matrix or Covariance matrix and do PCA
 
     fprintf('Creating Grid Cells via %s\n', method_tag);
 
     if ~NonNegative
+
     if use_SR % SR Matrix
         M = ones(In.n_cells); R = ones(In.n_cells);
         [M, ~] = trainModel(Cells, M, R, traj, 1);
         cells = getPlace(Cells, M, In.env);
         cells = getGrid(cells, M, In.env, 'off');
+
     else % Covariance Matrix 
         [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
         NeuronxTimeMat = NeuronxTimeMat - mean(NeuronxTimeMat, 2);
         eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false);
     end
 
-    elseif NonNegative
+    elseif NonNegative %% WIP
     %  Using "Montanari A, Richard E. Non-negative principal component analysis  
     %  Message Passing Algorithms and Sharp Asymptotics" approach. (FISTA would
     %  be faster though).

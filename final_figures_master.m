@@ -17,14 +17,14 @@
 %% First, load the data
 folder = '/Users/elsamarianelli/Documents/grids_data/';
 base = 'data_';
-name =    'covar_hasselmo_densityVaried_sizeVaried';
+name =    'covar_hasselmo_densityConstant_sizeVaried';
 basename = [base, name];
-nIterations =4;
+nIterations = 4;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
 
 % initiate folder to save figuyres
-subfolder = fullfile('grids_figures', name);  % or any folder name
+subfolder = fullfile('grids_figures_new', name);  % or any folder name
 
 % Create subfolder if it doesn't exist
 if ~exist(subfolder, 'dir')
@@ -38,7 +38,7 @@ fmaps = cellfun(@(pc) pc.fmap, Place_cells, 'UniformOutput', false);
 linear_idx = cellfun(@(f) find(f == max(f(:)), 1), fmaps);  % take first if multiple
 [rows, cols] = cellfun(@(f, idx) ind2sub(size(f), idx), fmaps, num2cell(linear_idx));
 
-figure; hold on; plot(cols, rows, 'o', 'MarkerSize', 5, 'Color', 'k', 'MarkerFaceColor','k');
+figure; hold on; plot(cols, rows, 'o', 'MarkerSize', 10, 'Color', 'k', 'MarkerFaceColor','k');
 
 % Get environemnt bin lines 
 xlim tight; ylim tight; xLimits = xlim; yLimits = ylim;
@@ -47,39 +47,39 @@ y_thirds = yLimits(1) + diff(yLimits) * [1/3, 2/3];
 
 % Add lines at 1/3 and 2/3
 for x = x_thirds
-    xline(x, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1);
+    xline(x, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 6);
 end
 for y = y_thirds
-    yline(y, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 1);
+    yline(y, '--', 'Color', [0.5 0.5 0.5], 'LineWidth', 6);
 end
 
 % Clean appearance
-axis equal; set(gca, 'Box', 'on', 'XTick', [], 'YTick', []);
+axis equal; set(gca, 'Box', 'on'); ax = gca; ax.FontSize = 25;
 
 % Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.fig'));
+saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.svg'));
 
 %% [B] Visualise how size of place cells vary 
 figure; 
 for i = 1:10
     map = Place_cells{i*6}.fmap;
-    subplot(2, 5, i); imagesc(map)
+    subplot(2, 5, i); imagesc(map); colormap("jet")
     axis off; axis image      
 end
 
 % Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_B_place.fig'));
+saveas(gcf, fullfile(subfolder, 'Figure_B_place.svg'));
 
 %% [b]2 Visualise some grids
 figure; 
 for i = 1:40
-    map = Grid_cells{1}{i*4}.map;
-    subplot(4, 10, i); imagesc(map); colormap("parula")
+    map = Grid_cells{1}{i*5}.map;
+    subplot(4, 10, i); imagesc(map); colormap("jet")
     axis off; axis image      
 end
 
 % Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_B_grid.fig'));
+saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 
 %% [C] evaluate scale and elipse in different environement bins
 
@@ -90,6 +90,7 @@ nPCs        = numel(Grid_cells{1});
 
 % initialise storage
 metrics_all = cell(nIterations, nPCs);  % Holds per-PC metric structs
+save(fullfile(subfolder, 'metrics.mat'), 'metrics_all');
 
 % loop to get metrics for each bin of environment( and also in corner,
 % side, centre configuration for later plotting)
@@ -111,7 +112,7 @@ for iter = 1:nIterations
 end
 
 %%  Plot BAR CHARTS of mean ± std 
-metrics = {'expGrd_h_el', 'scale_h_el', 'eccent', ...
+metrics = {'expGrd_h', 'scale_h', 'eccent', ...
     'orient', 'ellipicity'};
 
 for m=1:numel(metrics)
@@ -136,23 +137,39 @@ for m=1:numel(metrics)
     grand_mean = mean(mean_vals, 1, 'omitnan');
     grand_std  = std(mean_vals, 0, 1, 'omitnan');
     
-    % === Plot ===
-    figure; hold on;
+   % Plot Settings
     bar_x = 1:region_count;
-    b = bar(bar_x, grand_mean, 'FaceColor', [0.3 0.6 0.8], 'EdgeColor', 'k', 'LineWidth', 1.5);
+    bar_colors = {[.8 .8 .8], [0.5 0.5 .5], [.3 .3 .3]};  
+    xtick_labels = {'Corners', 'Edges', 'Center'};
+    ylim_vals = [0 1];  % Set to [] to auto-scale
     
-    % Add error bars
+    fig = figure('Units','inches','Position',[1 1 5 4]);  % [left bottom width height]
+    hold on;
+    
+    % Plot bars 
+    for i = 1:region_count
+        b = bar(bar_x(i), grand_mean(i), 'FaceColor', bar_colors{i}, ...
+            'EdgeColor', 'k', 'BarWidth', 0.8, 'LineWidth', 1.5);
+    end
+   
+    %  error bars
     er = errorbar(bar_x, grand_mean, grand_std, 'k', ...
-        'LineStyle', 'none', 'LineWidth', 1.8);
+        'LineStyle', 'none', 'LineWidth', 2);
     
-    % Formatting
-    set(gca, 'XTick', bar_x, 'XTickLabel', {'Corners', 'Edges', 'Center'}, 'FontSize', 16);
-    ylabel(strrep(metric, '_', '\_'), 'FontSize', 18);
-    xlabel('Environment Region', 'FontSize', 18);
-    title(['Mean ' strrep(metric, '_', '\_') ' Across Regions'], 'FontSize', 20);
-    box off;
+    % Axes formatting
+    set(gca, 'XTick', bar_x, 'XTickLabel', xtick_labels, ...
+        'FontSize', 18, 'LineWidth', 1.5);
+    ylabel(strrep(metric, '_', '\_'), 'FontSize', 20);
+    xlabel('Environment Region', 'FontSize', 20);
+    title(['Mean ' strrep(metric, '_', '\_') ' Across Regions'], 'FontSize', 22);
+    box on;
+    
+    ylim([0.2 0.5]); % for gridness
+    ylim([45 65]); % for scale
+    ylim([.65 .75]); %for eccent
+    ylim([.6 1.2]); %for orient
     % Optional: Save
-    % saveas(gcf, fullfile(subfolder, ['Barchart_' metric '.fig']));
+    saveas(gcf, fullfile(subfolder, ['Barchart_' metric '.svg']));
 
 end
 
@@ -199,6 +216,6 @@ for m = 1:nMetrics
     h.FontSize = 14;
 
     % Optional: Save
-    saveas(gcf, fullfile(subfolder, ['Heatmap_' metric '.fig']));
+    saveas(gcf, fullfile(subfolder, ['Heatmap_' metric '.svg']));
 
 end
