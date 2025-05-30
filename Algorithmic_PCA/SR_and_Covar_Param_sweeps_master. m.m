@@ -195,16 +195,16 @@ for iter = 1:n_iterations
 
         map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
         sac = xPearson(map); % spatial autocorrelogram
-
-        if all(isnan(sac(:)))
-            GC_metrics{PC} = NaN; % somethimes happens for the first map, stops loop breaking
-        else
-            [metrics.stGrd_s, metrics.expGrd_s, metrics.scale_s] = multiGridness(sac, 'square', map, "off");
-            [metrics.stGrd_h, metrics.expGrd_h, metrics.scale_h] = multiGridness(sac, 'hexagon', map, "off");
-        
-            metrics.map = map; metrics.sac = sac;
-            GC_metrics{PC} = metrics; % save metrics
-        end
+        % 
+        % if all(isnan(sac(:)))
+        %     GC_metrics{PC} = NaN; % somethimes happens for the first map, stops loop breaking
+        % else
+        %     [metrics.stGrd_s, metrics.expGrd_s, metrics.scale_s] = multiGridness(sac, 'square', map, "off");
+        %     [metrics.stGrd_h, metrics.expGrd_h, metrics.scale_h] = multiGridness(sac, 'hexagon', map, "off");
+        % 
+        %     metrics.map = map; metrics.sac = sac;
+        %     GC_metrics{PC} = metrics; % save metrics
+        % end
     end
 
     close(h);
