@@ -50,7 +50,7 @@ In.NumberOfPC = In.n_cells; % number of princ comps - should be the same as the 
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data'; 
+base_dir = 'grids_data_new'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
