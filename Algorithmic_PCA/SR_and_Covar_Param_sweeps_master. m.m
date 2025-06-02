@@ -24,7 +24,7 @@
 %% SETUP & PARAMETERS
 
 % Parameters to set....
-use_SR   = true;             % true = SR matrix, false = Covariance matrix
+use_SR   = false;             % true = SR matrix, false = Covariance matrix
 use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
@@ -36,21 +36,21 @@ NonNegative = false;         % non negative PCA option - note, require different
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
 pc_density = true ;          % true = density varies with distance to boundary
-pc_size    = false ;          % true = size also varies relatively
+pc_size    = true ;          % true = size also varies relatively
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;       % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 400;            % number of place cells
+In.n_cells = 250;            % number of place cells
 In.n_steps = 36000;          % trajectory length
-In.dim_x = 450;              % environment dimensions
-In.dim_y = 350;
+In.dim_x = 351;              % environment dimensions
+In.dim_y = 252;
 In.n_polys = 1;
 In.NumberOfPC = In.n_cells;  % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_SR_more_PCs'; 
+base_dir = 'grids_data_more_PlaceCells'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -131,6 +131,7 @@ for iter = 1:n_iterations
         [M, ~] = trainModel(Cells, M, R, traj, 1);
         cells = getPlace(Cells, M, In.env);
         cells = getGrid(cells, M, In.env, 'off');
+
     else % Covariance Matrix 
         [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
         NeuronxTimeMat = NeuronxTimeMat - mean(NeuronxTimeMat, 2);

@@ -51,8 +51,9 @@ for i = 1:3
             smoothed_map = smoothdata2(map);
             peaks = FastPeakFind(smoothed_map);
             % visualisation option...
-            % figure; imagesc(smoothed_map); hold on;
-            % plot(peaks(1:2:end),peaks(2:2:end),'r+');
+            figure; imagesc(smoothed_map); hold on;
+            plot(peaks(1:2:end),peaks(2:2:end),'r+');
+            
             if numel(peaks)/2 > 5
                 binned_metrics_nine(i,j).scale_h = scale;
                 binned_metrics_nine(i,j).stGrd_h_el = stGrd_el;

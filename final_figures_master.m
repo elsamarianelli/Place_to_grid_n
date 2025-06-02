@@ -16,14 +16,14 @@
 %% First, load the data
 folder = '/Users/elsamarianelli/Documents/grids_data/';
 base = 'data_';
-name =    'covar_hasselmo_densityConstant_sizeVaried';
+name =    'covar_hasselmo_densityConstant_sizeConstant';
 basename = [base, name];
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
 
 % initiate folder to save figuyres
-subfolder = fullfile('grids_figures_new', name);  % or any folder name
+subfolder = fullfile('grids_figures_SR_more_PCs', name);  % or any folder name
 
 % Create subfolder if it doesn't exist
 if ~exist(subfolder, 'dir')
