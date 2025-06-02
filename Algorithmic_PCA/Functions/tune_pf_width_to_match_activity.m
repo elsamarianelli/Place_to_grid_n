@@ -1,9 +1,6 @@
-function [best_width, UniCells, scaling_factor_history] = tune_pf_width_to_match_activity(In, TanniCells, max_iters, tolerance, pc_density, pc_size)
-% TUNE_PF_WIDTH_TO_MATCH_ACTIVITY Adjusts pf_width_cntrl to equalize mean population activity
-%
-%   [best_width, UniCells, scaling_factor_history] = tune_pf_width_to_match_activity(In, TanniCells, max_iters, tolerance)
-%
-%   This function iteratively adjusts the 'In.pf_width_cntrl' parameter used in
+function [best_width, UniCells, scaling_factor_history] = tune_pf_width_to_match_activity( ...
+    In, TanniCells, max_iters, tolerance, pc_density, pc_size)
+%   Iteratively adjusts the 'In.pf_width_cntrl' parameter used in
 %   uniform place field generation to match the mean population firing rate
 %   of the given boundary-modulated (Tanni-style) place cells.
 %
@@ -14,9 +11,9 @@ function [best_width, UniCells, scaling_factor_history] = tune_pf_width_to_match
 %       tolerance  - Tolerance threshold for convergence (e.g. 0.01)
 %
 %   Outputs:
-%       best_width             - The optimal value of In.pf_width_cntrl
+%       best_width             - used for In.pf_width_cntrl
 %       UniCells               - Final uniform place cells with matched activity
-%       scaling_factor_history - Vector of scaling factors per iteration (for plotting/debugging)
+%       scaling_factor_history - Vector of scaling factors per iteration 
 
     % Initialization
     pf_width = In.pf_width_cntrl;  % Starting value

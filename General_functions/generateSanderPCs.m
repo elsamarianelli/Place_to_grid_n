@@ -20,8 +20,8 @@ for n = 1:n_cells
     mean_y = xy_field(n, 2);
 
     % Standard deviations in x and y directions (~ width of field / 3)
-    sig_x = fieldWidth(env.x_dists(mean_y, mean_x)) / 3; 
-    sig_y = fieldWidth(env.y_dists(mean_y, mean_x)) / 3;
+    sig_x = fieldWidth(env.x_dists(mean_y, mean_x)) / 4; 
+    sig_y = fieldWidth(env.y_dists(mean_y, mean_x)) / 4;
 
     % Initialize the rate map (place field map) as a zero matrix
     place_map = zeros(size(env.L));

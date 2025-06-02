@@ -21,10 +21,10 @@
 %       - Spatial autocorrelograms (SACs)
 %       - 2D grid cell rate maps
 
-%% [0] SETUP & PARAMETERS
+%% SETUP & PARAMETERS
 
 % Parameters to set....
-use_SR  = false;             % true = SR matrix, false = Covariance matrix
+use_SR   = true;             % true = SR matrix, false = Covariance matrix
 use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
@@ -35,22 +35,22 @@ NonNegative = false;         % non negative PCA option - note, require different
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = false;         % true = density varies with distance to boundary
-pc_size    = false;          % true = size also varies relatively
+pc_density = false ;          % true = density varies with distance to boundary
+pc_size    = true ;          % true = size also varies relatively
 
 % Additional parameters and environemnt details...should remain constant...
-In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
+In.pf_width_cntrl = 2;       % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 250;               % number of place cells
-In.n_steps = 36000;             % trajectory length
-In.dim_x = 351;                 % environment dimensions
-In.dim_y = 252;
+In.n_cells = 400;            % number of place cells
+In.n_steps = 36000;          % trajectory length
+In.dim_x = 450;              % environment dimensions
+In.dim_y = 350;
 In.n_polys = 1;
-In.NumberOfPC = In.n_cells; % number of princ comps - should be the same as the number of place cells
+In.NumberOfPC = In.n_cells;  % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data'; 
+base_dir = 'grids_data_S'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -111,7 +111,7 @@ for iter = 1:n_iterations
         fprintf('Ensuring firing rate is equal ');
         [TanniCells, In] = generate_place_cells(In, true, true);
         % Tune uniform field width to match mean population activity
-        [max_iters, tolerance] = deal(20, 0.01);
+        max_iters = 20; tolerance = 0.01; % search parameters 
         [best_width, UniCells, history] = tune_pf_width_to_match_activity( ...
             In, TanniCells, max_iters, tolerance, pc_density, pc_size);
         % Use tuned width to generate Place Cells
@@ -195,16 +195,16 @@ for iter = 1:n_iterations
 
         map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
         sac = xPearson(map); % spatial autocorrelogram
-
-        if all(isnan(sac(:)))
-            GC_metrics{PC} = NaN; % somethimes happens for the first map, stops loop breaking
-        else
-            [metrics.stGrd_s, metrics.expGrd_s, metrics.scale_s] = multiGridness(sac, 'square', map, "off");
-            [metrics.stGrd_h, metrics.expGrd_h, metrics.scale_h] = multiGridness(sac, 'hexagon', map, "off");
-        
-            metrics.map = map; metrics.sac = sac;
-            GC_metrics{PC} = metrics; % save metrics
-        end
+        % 
+        % if all(isnan(sac(:)))
+        %     GC_metrics{PC} = NaN; % somethimes happens for the first map, stops loop breaking
+        % else
+        %     [metrics.stGrd_s, metrics.expGrd_s, metrics.scale_s] = multiGridness(sac, 'square', map, "off");
+        %     [metrics.stGrd_h, metrics.expGrd_h, metrics.scale_h] = multiGridness(sac, 'hexagon', map, "off");
+        % 
+        %     metrics.map = map; metrics.sac = sac;
+        %     GC_metrics{PC} = metrics; % save metrics
+        % end
     end
 
     close(h);

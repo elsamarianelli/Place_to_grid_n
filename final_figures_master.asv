@@ -117,7 +117,7 @@ metrics = {'expGrd_h', 'scale_h', 'eccent', ...
 
 for m=1:numel(metrics)
     metric = metrics{m};
-    nIterations = 4;        % Number of iterations
+    nIterations = 5;        % Number of iterations
     nPCs =250;            % Number of cells per iteration
     region_count = 3;                        % Corners, Edges, Center
     
