@@ -56,7 +56,7 @@ end
 axis equal; set(gca, 'Box', 'on'); ax = gca; ax.FontSize = 25;
 
 % Save the figure
-saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.svg'));
+% saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.svg'));
 
 %% [B] Visualise how size of place cells vary 
 figure; 

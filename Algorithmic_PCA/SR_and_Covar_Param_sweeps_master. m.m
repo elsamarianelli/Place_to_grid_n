@@ -41,10 +41,10 @@ pc_size    = true ;          % true = size also varies relatively
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;       % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 250;            % number of place cells
+In.n_cells = 250.*9;            % number of place cells
 In.n_steps = 36000;          % trajectory length
-In.dim_x = 351;              % environment dimensions
-In.dim_y = 252;
+In.dim_x = 351.*3;              % environment dimensions
+In.dim_y = 252.*3;
 In.n_polys = 1;
 In.NumberOfPC = In.n_cells;  % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
