@@ -54,7 +54,7 @@ for i = 1:3
             figure; imagesc(smoothed_map); hold on;
             plot(peaks(1:2:end),peaks(2:2:end),'r+');
             
-            if numel(peaks)/2 > 5
+            if numel(peaks)/2 > 6
                 binned_metrics_nine(i,j).scale_h = scale;
                 binned_metrics_nine(i,j).stGrd_h_el = stGrd_el;
                 binned_metrics_nine(i,j).eccent = eccent;

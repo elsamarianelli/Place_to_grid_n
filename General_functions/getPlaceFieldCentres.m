@@ -29,37 +29,11 @@ function [xy_field, env, bin_prob]= getPlaceFieldCentres(env, n_cells, dim_x, di
     id_field = randsample(poss_id, n_cells, true, id_prob);
     [y_field, x_field] = ind2sub(size(x_dists), id_field); % Convert to subscripts
     xy_field = [x_field, y_field]; % Store field centers
-    
-    % order place fields for visualisation 
-    % put cells next to each other
-    num_coords = size(xy_field, 1);
-    sorted_coords = zeros(num_coords, 2);
-    current_index = 1;
-    sorted_coords(1, :) = xy_field(current_index, :);
-    visited = false(num_coords, 1);
-    visited(current_index) = true;
-    
+   
     % Resort the coordinates so they are ordered to be close to each other -
     % for visualising covar matrix
-    for i = 2:num_coords
-        % Calculate distances from the current point to all unvisited points
-        dists = sqrt(sum((xy_field(~visited, :) - xy_field(current_index, :)).^2, 2));
-        
-        % Get the indices of unvisited points
-        unvisited_indices = find(~visited);
-        
-        % Find the index of the closest unvisited point
-        [~, min_idx] = min(dists);
-        next_index = unvisited_indices(min_idx);
-        
-        % Update the sorted coordinates and mark the point as visited
-        sorted_coords(i, :) = xy_field(next_index, :);
-        visited(next_index) = true;
-        
-        % Move to the next point
-        current_index = next_index;
-    end
-    
-    xy_field = sorted_coords;
+    dists = sqrt(sum((xy_field - repmat(xy_field(1,:),size(xy_field,1),1)).^2,2));
+    [~,ord] = sort(dists); clear dists
+    xy_field = xy_field(ord,:); clear ord
 end
 
