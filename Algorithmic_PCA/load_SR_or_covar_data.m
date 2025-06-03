@@ -1,0 +1,41 @@
+function [In, Cells, GC_metrics_all] = load_SR_or_covar_data(base_folder, base_name, nIterations)
+% LOAD_SR_OR_COVAR_DATA
+%   Loads GC metrics and associated info from 5 iterations of a parameter sweep.
+%
+%   Inputs:
+%     base_folder - full path to the parent folder where base_name folders live
+%     base_name   - name of the specific parameter setting folder (e.g. 'SR_Covar_check_SR_Tanni')
+%
+%   Outputs:
+%     In             - structure containing environment and config info (from iteration 1)
+%     Cells          - 1x250 cell array of place cell maps (from iteration 1)
+%     GC_metrics_all - 5x1 cell array of GC_metrics from each iteration (each is 250x1 cell array)
+
+    GC_metrics_all = cell(nIterations, 1);
+
+    for iter = 1:nIterations
+        fprintf(['Loading Iteration ', num2str(iter),' ... '])
+        iter_folder = fullfile(base_folder, base_name, sprintf('iteration_%.1f', iter));
+
+        % Load GC metrics
+        metric_file = fullfile(iter_folder, 'metrics_and_maps.mat');
+        if ~isfile(metric_file)
+            error('Missing file: %s', metric_file);
+        end
+        data = load(metric_file);
+        GC_metrics_all{iter} = data.GC_metrics;
+
+        % Only need In and Cells from one iteration
+        if iter == 1
+            In = data.In;
+
+            % Load place cell info
+            pc_file = fullfile(iter_folder, 'orig_place_cells.mat');
+            if ~isfile(pc_file)
+                error('Missing place cell file: %s', pc_file);
+            end
+            pc_data = load(pc_file);
+            Cells = pc_data.Cells;
+        end
+    end
+end
