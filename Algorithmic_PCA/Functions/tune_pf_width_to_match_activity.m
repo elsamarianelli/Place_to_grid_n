@@ -17,7 +17,7 @@ function [best_width, UniCells, scaling_factor_history] = tune_pf_width_to_match
 
     % Initialization
     pf_width = In.pf_width_cntrl;  % Starting value
-    step = 0.5;
+    step = .5;
     scaling_factor_history = [];
     best_width = NaN;
 

@@ -14,21 +14,22 @@
 %% Figure 1 - How does changing density and size parameters of Place cells affect Grids?
 
 %% First, load the data
-folder = '/Users/elsamarianelli/Documents/grids_data/';
+folder = '/Users/elsamarianelli/Documents/grids_data_fr_matched/';
 base = 'data_';
-name =    'covar_hasselmo_densityConstant_sizeConstant';
+name =    'covar_hasselmo_densityVaried_sizeVaried';
 basename = [base, name];
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
 
 % initiate folder to save figuyres
-subfolder = fullfile('grids_figures_SR_more_PCs', name);  % or any folder name
+subfolder = fullfile('grids_figures_SR_more_PlaceCells', name);  % or any folder name
 
 % Create subfolder if it doesn't exist
 if ~exist(subfolder, 'dir')
     mkdir(subfolder);
 end
+
 %% [A] Visualise how distribution of place cell centres vary
 % Extract all fmaps into a cell array
 fmaps = cellfun(@(pc) pc.fmap, Place_cells, 'UniformOutput', false);
@@ -56,7 +57,7 @@ end
 axis equal; set(gca, 'Box', 'on'); ax = gca; ax.FontSize = 25;
 
 % Save the figure
-% saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.svg'));
+saveas(gcf, fullfile(subfolder, 'Figure_A_place_centres.svg'));
 
 %% [B] Visualise how size of place cells vary 
 figure; 
@@ -72,7 +73,7 @@ saveas(gcf, fullfile(subfolder, 'Figure_B_place.svg'));
 %% [b]2 Visualise some grids
 figure; 
 for i = 1:40
-    map = Grid_cells{1}{i*5}.map;
+    map = Grid_cells{1}{i*3}.map;
     subplot(4, 10, i); imagesc(map); colormap("jet")
     axis off; axis image      
 end

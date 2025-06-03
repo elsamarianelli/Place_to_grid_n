@@ -1,4 +1,4 @@
-function [cells] = getGrid(cells, M, env, nn)
+function [cells] = getGrid(cells, M, env)
 % getGrid - Computes grid cell representations from place cell data using
 % eigenvectors of a SR matrix
 %
@@ -16,16 +16,8 @@ function [cells] = getGrid(cells, M, env, nn)
 % Set the standard deviation for Gaussian smoothing
 smth_sig = 3;
 
-% eigen decmompostion of matrix
-if strcmp(nn, 'off')
-    % Perform eigen decomposition of matrix M
-    [V, ~] = eig(M);
-else   
-    % non negative eigen decomp/PCA methods    
-    % V = NNPCA2014(M, 200);
-    % [W, H] = nnmf(M, 10);
-    % [V] = nonNegativeEig(M, 200);
-end
+% eigendecomp of Matrix
+[V, ~] = eig(M);
 
 % Loop through each cell to compute its grid cell representation
 for i = 1:length(cells)

@@ -35,22 +35,22 @@ NonNegative = false;         % non negative PCA option - note, require different
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = true ;          % true = density varies with distance to boundary
-pc_size    = true ;          % true = size also varies relatively
+pc_density = false ;         % true = density varies with distance to boundary
+pc_size    = false ;         % true = size also varies relatively
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;       % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 250.*9;            % number of place cells
+In.n_cells = 250;            % number of place cells
 In.n_steps = 36000;          % trajectory length
-In.dim_x = 351.*3;              % environment dimensions
-In.dim_y = 252.*3;
+In.dim_x = 351;              % environment dimensions
+In.dim_y = 252;
 In.n_polys = 1;
 In.NumberOfPC = In.n_cells;  % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_more_PlaceCells'; 
+base_dir = 'grids_data_double_size'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -88,14 +88,9 @@ for iter = 1:n_iterations
         traj_cov = unique(combinations((1:In.dim_x)', (1:In.dim_y)'));  
         % double up so the number of steps is roughtly the same as whats used in SR
         traj = table2array([traj_cov; traj_cov]);
-
     elseif strcmp(traj_tag, 'hasselmo')    
         traj = load_premade_traj(iter);
-        traj = traj(1:In.n_steps, :);  % trim to desired length
-        
-    elseif strcmp(traj_tag, 'thigmotaxis')%
-
-            %To DO - generate different type of 
+        traj = traj(1:In.n_steps, :);  % trim to desired length       
     end
 
     %% [3] Generate Place Cells
@@ -184,7 +179,7 @@ for iter = 1:n_iterations
 
     for PC = 1:In.n_cells
         waitbar(PC / In.n_cells, h);
-
+        disp(PC)
         if use_SR
             map = cells{PC}.grid; % grid already calculated before
         else
@@ -195,16 +190,8 @@ for iter = 1:n_iterations
 
         map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
         sac = xPearson(map); % spatial autocorrelogram
-        % 
-        % if all(isnan(sac(:)))
-        %     GC_metrics{PC} = NaN; % somethimes happens for the first map, stops loop breaking
-        % else
-        %     [metrics.stGrd_s, metrics.expGrd_s, metrics.scale_s] = multiGridness(sac, 'square', map, "off");
-        %     [metrics.stGrd_h, metrics.expGrd_h, metrics.scale_h] = multiGridness(sac, 'hexagon', map, "off");
-        % 
-        %     metrics.map = map; metrics.sac = sac;
-        %     GC_metrics{PC} = metrics; % save metrics
-        % end
+        metrics.map = map; metrics.sac = sac;
+        GC_metrics{PC} = metrics; % save metrics
     end
 
     close(h);

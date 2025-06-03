@@ -15,7 +15,7 @@ bin_id = find(env.L == 2);
 
 % Loop over each cell to generate its place field map
 for n = 1:n_cells
-    disp(n)
+    % disp(n)
     % Center of the place field for the current cell
     mean_x = xy_field(n, 1); 
     mean_y = xy_field(n, 2);
