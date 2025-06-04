@@ -20,7 +20,7 @@ function [dWall, aWall] = minDistAngle(env,pos,dir)
 % figure; imagesc(env.dwmap); hold on; plot(pos(1), pos(2),'.', 'MarkerSize', 20); hold off
 
 x = pos(1); y = pos(2);
-dmap = zeros(env.dim_y,env.dim_x);
+dmap = zeros(size(env.L)); % EM bug fix
 dmap(y,x) = 1;
 dmap = bwdist(dmap);
 dmap(env.L==1) = NaN;

@@ -4,7 +4,7 @@ function [In] = GenerateEnv(In)
 %       polys: Cell array containing polygons that define boundaries in the In.environment
 %       In.dim_x: Width of the In.environment (in pixels)
 %       In.dim_y: Height of the In.environment (in pixels)
-%       shape:  Can specify circle or trapezoid depending on In.environment
+%       In.shape:  Can specify circle or trapezoid depending on In.environment
 %       boundary type
 %   Outputs:
 %       In.env: Structure containing the In.environment map and various properties

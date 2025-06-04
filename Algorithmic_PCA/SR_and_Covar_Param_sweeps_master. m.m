@@ -41,10 +41,10 @@ pc_size    = false ;         % true = size also varies relatively
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;       % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 250;            % number of place cells
-In.n_steps = 36000;          % trajectory length
-In.dim_x = 351;              % environment dimensions
-In.dim_y = 252;
+In.n_cells = 250.*9;            % number of place cells
+In.n_steps = 36000.*9;          % trajectory length
+In.dim_x = 351.*3;              % environment dimensions
+In.dim_y = 252.*3;
 In.n_polys = 1;
 In.NumberOfPC = In.n_cells;  % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
@@ -66,6 +66,7 @@ if ~exist(output_dir, 'dir'); mkdir(output_dir); end
 fprintf('Generating Environment...\n');
 In.polys{1} = [0 trap_add, (In.dim_x-2) 0, (In.dim_x-2) (In.dim_y-2), 0 ((In.dim_y-2)-trap_add), 0 0] + 2;  
 In = GenerateEnv(In);   % returns In strucutre now with environemnt info (In.env)
+In.env.dim_y = In.dim_y; In.env.dim_x = In.dim_x; 
 
 %% MAIN LOOP 
 
@@ -91,6 +92,10 @@ for iter = 1:n_iterations
     elseif strcmp(traj_tag, 'hasselmo')    
         traj = load_premade_traj(iter);
         traj = traj(1:In.n_steps, :);  % trim to desired length       
+    elseif strcmp(traj_tag, 'generate') % in cases of different environmnetal shape 
+        In.env.dim_y = In.dim_y; In.env.dim_x = In.dim_x; 
+        traj = HasselmoForage(In.env, In.n_steps);
+        traj = round(traj);    
     end
 
     %% [3] Generate Place Cells
