@@ -40,7 +40,7 @@ pc_size    = true;         % true = size also varies relatively
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
-n_iterations = 5;
+n_iterations = 1;
 In.n_cells = 250;               % number of place cells
 In.n_steps = 360000;             % trajectory length
 In.dim_x = 351;                 % environment dimensions
@@ -50,7 +50,7 @@ In.NumberOfPC = In.n_cells; % number of princ comps - should be the same as the 
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'data/grids_data_big'; 
+base_dir = 'Documents/data/grids_data_big'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -90,6 +90,8 @@ parfor iter = 1:n_iterations
     % Initialise so parfor doesn't get confused
     In_local = In;
     traj = []; cells = []; NeuronxEnvMat = []; NeuronxTimeMat = []; eigvec = [];
+    output_dir_local = fullfile(getenv('USERPROFILE'), 'Documents', 'data', ...
+        ['data_' method_tag, '_', traj_tag, '_', density_tag, '_', size_tag]);
 
     % [2] Load Trajectory
     send(dq, sprintf('Iteration %d: Loading/generating trajectory...', iter));
@@ -107,19 +109,18 @@ parfor iter = 1:n_iterations
     % [3] Generate Place Cells
     send(dq, sprintf('Iteration %d: Generating place cells...', iter));
     if pc_density && pc_size
-        [Cells, In_local] = generate_place_cells(In_local, pc_density, pc_size);
+
+        [Cells, ~] = generate_place_cells(In_local, pc_density, pc_size);
     else
-        [TanniCells, In_local] = safe_generate_place_cells(In_local, true, true);
-        [best_width, UniCells, ~] = safe_tune_pf_width_to_match_activity( ...
+        [TanniCells, ~] = generate_place_cells(In_local, true, true);
+        [best_width, UniCells, ~] = tune_pf_width_to_match_activity( ...
             In_local, TanniCells, 20, 0.01, pc_density, pc_size);
         In_local.pf_width_cntrl = best_width;
-        [Cells, In_local] = safe_generate_place_cells(In_local, pc_density, pc_size);
+        [Cells, ~] = generate_place_cells(In_local, pc_density, pc_size);
     end
 
-    output_dir_local = fullfile(getenv('USERPROFILE'), 'Documents', 'data', ...
-        ['data_' method_tag, '_', traj_tag, '_', density_tag, '_', size_tag]);
     subfolder = fullfile(output_dir_local, sprintf('iteration_%d', iter));
-    parsave2(fullfile(subfolder, 'orig_place_cells.mat'), 'Cells', Cells);
+    save(fullfile(subfolder, 'orig_place_cells.mat'), 'Cells');
 
     % [4] Generate Matrix and PCA
     send(dq, sprintf('Iteration %d: Computing grid cells (%s)...', iter, method_tag));
@@ -155,8 +156,7 @@ parfor iter = 1:n_iterations
 
     % [6] Save Results
     send(dq, sprintf('Iteration %d: Saving results...', iter));
-    out_file = fullfile(subfolder, 'metrics_and_maps.mat');
-    parsave2(out_file, In_mod, GC_metrics);
+    save(fullfile(subfolder, 'metrics_and_maps.mat'), 'In_local', 'GC_metrics', '-v7.3');
 end
 
 disp('All done.');
