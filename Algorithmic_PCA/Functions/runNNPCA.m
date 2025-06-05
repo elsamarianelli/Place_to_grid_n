@@ -5,6 +5,8 @@ function PC_NN = runNNPCA(NeuronxTimeMat, NumberOfPC, zero_mean)
     PC_NN = zeros(size(r_saved, 1), NumberOfPC);
 
     for z = 1:NumberOfPC
+        disp(z)
+
         % Zero-mean input data
         if strcmp(zero_mean, 'spatial')
             meanInputMat = mean(r_saved, 2);  % mean over time

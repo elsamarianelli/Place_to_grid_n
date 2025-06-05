@@ -41,16 +41,16 @@ pc_size    = true;         % true = size also varies relatively
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 250;               % number of place cells
-In.n_steps = 360000;             % trajectory length
-In.dim_x = 351;                 % environment dimensions
+In.n_cells = 250;            % number of place cells
+In.n_steps = 360000;         % trajectory length
+In.dim_x = 351;              % environment dimensions
 In.dim_y = 252;
 In.n_polys = 1;
 In.NumberOfPC = In.n_cells; % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'data/grids_data_big'; 
+base_dir = 'grids_data_test'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -58,7 +58,7 @@ size_tag = 'sizeVaried' ; if ~ pc_size; size_tag = 'sizeConstant'; end
 
 % saving 
 user_docs = fullfile(getenv('USERPROFILE'), 'Documents');  % On Windows
-base_dir = fullfile(user_docs, 'data');
+base_dir = fullfile(user_docs, 'grids_data_big');
 output_dir = fullfile(base_dir, ['data_' method_tag, '_', traj_tag, '_', density_tag, '_', size_tag]);
 if ~exist(output_dir, 'dir')
     mkdir(output_dir);
@@ -80,7 +80,7 @@ In = GenerateEnv(In);   % returns In strucutre now with environemnt info (In.env
 In.env.dim_x = In.dim_x; In.env.dim_y = In.dim_y;
 
 %% MAIN LOOP  
-parpool();  % Start parallel pool
+% parpool();  % Start parallel pool
 dq = parallel.pool.DataQueue;
 afterEach(dq, @(msg) disp(msg));  % Print each message from workers
 
@@ -92,7 +92,7 @@ parfor iter = 1:n_iterations
     traj = []; cells = []; NeuronxEnvMat = []; NeuronxTimeMat = []; eigvec = [];
 
     % [2] Load Trajectory
-    send(dq, sprintf('Iteration %d: Loading/generating trajectory...', iter));
+    send(dq, sprintf('Iteration %d: Load/generate trajectory...', iter));
     if strcmp(traj_tag, 'uniform')
         traj_cov = unique(combinations((1:In_local.dim_x)', (1:In_local.dim_y)'));  
         traj = table2array([traj_cov; traj_cov]);
@@ -105,7 +105,7 @@ parfor iter = 1:n_iterations
     end
 
     % [3] Generate Place Cells
-    send(dq, sprintf('Iteration %d: Generating place cells...', iter));
+    send(dq, sprintf('Iteration %d: Generate place cells...', iter));
     if pc_density && pc_size
         [Cells, In_local] = generate_place_cells(In_local, pc_density, pc_size);
     else
@@ -122,7 +122,7 @@ parfor iter = 1:n_iterations
     parsave2(fullfile(subfolder, 'orig_place_cells.mat'), 'Cells', Cells);
 
     % [4] Generate Matrix and PCA
-    send(dq, sprintf('Iteration %d: Computing grid cells (%s)...', iter, method_tag));
+    send(dq, sprintf('Iteration %d: Compute eigenvectors (%s)...', iter, method_tag));
     if ~NonNegative
         if use_SR
             M = ones(In_local.n_cells); R = ones(In_local.n_cells);
@@ -134,13 +134,13 @@ parfor iter = 1:n_iterations
             NeuronxTimeMat = NeuronxTimeMat - mean(NeuronxTimeMat, 2);
             eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false);
         end
-    else
+    else % if doing NN PCA %% mae run with others, need M matrix input
         zero_mean = 'spatial';
-        PC_NN = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
+        eigenvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
     end
 
     % [5] Compute Grid Metrics
-    send(dq, sprintf('Iteration %d: Computing metrics...', iter));
+    send(dq, sprintf('Iteration %d: Getting Maps and Sacs...', iter));
     GC_metrics = cell(In_local.n_cells, 1);
     for PC = 1:In_local.n_cells
         if use_SR
@@ -156,7 +156,7 @@ parfor iter = 1:n_iterations
     % [6] Save Results
     send(dq, sprintf('Iteration %d: Saving results...', iter));
     out_file = fullfile(subfolder, 'metrics_and_maps.mat');
-    parsave2(out_file, In_mod, GC_metrics);
+    parsave2(out_file, GC_metrics, In_local);
 end
 
 disp('All done.');
