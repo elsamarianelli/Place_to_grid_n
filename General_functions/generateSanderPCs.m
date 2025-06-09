@@ -15,7 +15,7 @@ bin_id = find(env.L == 2);
 
 % Loop over each cell to generate its place field map
 for n = 1:n_cells
-    % disp(n)
+
     % Center of the place field for the current cell
     mean_x = xy_field(n, 1); 
     mean_y = xy_field(n, 2);
@@ -24,16 +24,21 @@ for n = 1:n_cells
     sig_x = fieldWidth(env.x_dists(mean_y, mean_x)) / 4; 
     sig_y = fieldWidth(env.y_dists(mean_y, mean_x)) / 4;
 
+    % EM - vectorise again for efficiency
     % Initialize the rate map (place field map) as a zero matrix
     place_map = zeros(size(env.L));
     
-    % Loop over all valid positions in the environment to compute the firing rate
-    for i = 1:length(bin_id)
-        [y, x] = ind2sub(size(place_map), bin_id(i)); 
-        % Calculate firing rate
-        place_map(y, x) = exp(-(x-mean_x)^2 / (2*sig_x^2)) * exp(-(y-mean_y)^2 / (2*sig_y^2)) / (2*pi*sig_x*sig_y);
-    end
+    % Get all (x, y) coordinates from bin indices
+    [y, x] = ind2sub(size(place_map), bin_id);
     
+    % Vectorized computation of firing rates using element-wise operations
+    fr = exp(-((x - mean_x).^2) / (2 * sig_x^2)) ...
+       .* exp(-((y - mean_y).^2) / (2 * sig_y^2)) ...
+       / (2 * pi * sig_x * sig_y);
+    
+    % Assign the firing rates to the corresponding positions in the map
+    place_map(bin_id) = fr;
+
     % Normalize the place map by its maximum value
     place_map = place_map / max(place_map(:));
     

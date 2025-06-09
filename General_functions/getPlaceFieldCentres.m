@@ -35,5 +35,6 @@ function [xy_field, env, bin_prob]= getPlaceFieldCentres(env, n_cells, dim_x, di
     dists = sqrt(sum((xy_field - repmat(xy_field(1,:),size(xy_field,1),1)).^2,2));
     [~,ord] = sort(dists); clear dists
     xy_field = xy_field(ord,:); clear ord
+    
 end
 

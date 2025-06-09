@@ -1,4 +1,4 @@
-function [In, Cells, GC_maps_all] = load_SR_or_covar_data(base_folder, base_name, nIterations)
+function [In, Cells, GC_metrics_all] = load_SR_or_covar_data(base_folder, base_name, nIterations)
 % LOAD_SR_OR_COVAR_DATA
 %   Loads GC metrics and associated info from 5 iterations of a parameter sweep.
 %
@@ -27,6 +27,8 @@ function [In, Cells, GC_maps_all] = load_SR_or_covar_data(base_folder, base_name
 
         % Only need In and Cells from one iteration
         if iter == 1
+            In = data.In_mod; % change
+
             % Load place cell info
             pc_file = fullfile(iter_folder, 'orig_place_cells.mat');
             if ~isfile(pc_file)
@@ -34,7 +36,6 @@ function [In, Cells, GC_maps_all] = load_SR_or_covar_data(base_folder, base_name
             end
             pc_data = load(pc_file);
             Cells = pc_data.Cells;
-            In = pc_data.In;
         end
     end
 end

@@ -14,16 +14,15 @@
 %% Figure 1 - How does changing density and size parameters of Place cells affect Grids?
 
 %% First, load the data
-folder = '/Users/elsamarianelli/Documents/grids_data_fr_matched/';
-base = 'data_';
-name =    'covar_hasselmo_densityConstant_sizeConstant';
-basename = [base, name];
+folder = '/Users/Elsa Marianelli/Documents/';  %% change depending on computer
+sub = 'grids_data_test'; folder = [folder sub '/'];
+basename = 'data_covar_hasselmo_densityVaried_sizeVaried';
 nIterations = 1;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
 
 % initiate folder to save figuyres
-subfolder = fullfile('grids_figures_SR_fr_matched', name);  % or any folder name
+subfolder = fullfile([sub '_figs'], name);  % or any folder name
 
 % Create subfolder if it doesn't exist
 if ~exist(subfolder, 'dir')

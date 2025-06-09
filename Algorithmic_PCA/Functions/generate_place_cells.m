@@ -36,7 +36,7 @@ function [PlaceCells, In] = generate_place_cells(In, pc_density, pc_size)
         PlaceCells = generateUniformPCs(In.env, In.n_cells, xy_field, fw);
     end
 
-    %  [Optional] Plot field centres 
+    %  % [Optional] Plot field centres 
     % figure;
     % scatter(xy_field(:,1), xy_field(:,2), 20, 'filled');
     % title('Place Field Centres');
