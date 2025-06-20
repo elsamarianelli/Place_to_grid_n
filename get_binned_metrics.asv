@@ -17,7 +17,6 @@ metric_names = {'stGrd_h', 'expGrd_h', 'scale_h','stGrd_h_el', 'expGrd_h_el', 's
 binned_metrics_nine = struct();
 binned_metrics_three = struct();
 
-
 % [4] Process each bin: ellipse fit, correct SAC, and compute metrics
 
 for i = 1:3
@@ -27,49 +26,25 @@ for i = 1:3
         
         try
             % normal version
-            [stGrd, expGrd, scale] = multiGridness(sac, shape, false, map);
+            [stGrd, expGrd, scale] = multiGridness(sac, shape, false, map);            
             % elipse version - essentially fits ellipse, rescales 
-            % figure;
-            [xyScale, eccent, orient, abScale, ellip] = gridEllipse_fit(sac, false);
-            % saveas(gcf, fullfile('grids_figures/ellipse_fit_example', [num2str(i),'i_', num2str(j), 'j_ellipseSac', '.fig']));
-            % saveas(map, fullfile('grids_figures/ellipse_fit_example', [num2str(i),'i_', num2str(j), 'j_map', '.fig']));
-            % % 
+            figure
+            [xyScale, eccent, orient, abScale, ellip] = gridEllipse_fit(sac, true); 
             % debugged this funcction so should get circle now!
             regSac = gridEllipse_correct(sac, abScale, orient); 
-            [stGrd_el, expGrd_el, scale_el] = multiGridness(regSac, shape, false, map);
-            % title([num2str(i), num2str(j)])
+            [stGrd_el, expGrd_el, scale_el] = multiGridness(regSac, shape, true, map);
             % save gridness values always
             binned_metrics_nine(i,j).stGrd_h = stGrd;
             binned_metrics_nine(i,j).expGrd_h = expGrd;
             binned_metrics_nine(i,j).expGrd_h_el = expGrd_el;
-            binned_metrics_nine(i,j).scale_h_el = scale_el;
-        % only save others if there are enough peaks to try with
-        % smooth and check for number of peaks using ...
-        % Natan, Adi. "Fast 2D peak finder." MATLAB Central File Exchange. 
-        % Available at https://www. mathworks. com/matlabcentral/fileexchange/37388-fast-2d-peak-finder (2021).
-        % to deal with peaks (works a bit better than matlab islocalmax2)
-        smoothed_map = smoothdata2(map);
-        peaks = FastPeakFind(smoothed_map);
-        % visualisation option...
-        % figure; imagesc(smoothed_map); hold on;
-        % plot(peaks(1:2:end),peaks(2:2:end),'r+');
-        if numel(peaks)/2 > 5
+            binned_metrics_nine(i,j).scale_h_el = scale_el; 
             binned_metrics_nine(i,j).scale_h = scale;
             binned_metrics_nine(i,j).stGrd_h_el = stGrd_el;
             binned_metrics_nine(i,j).eccent = eccent;
-            binned_metrics_nine(i,j).orient = orient;
+            binned_metrics_nine(i,j).orient = rad2deg(orient);  %%%% use degrees instead, easier to interpret
             binned_metrics_nine(i,j).xyScale = xyScale;
             binned_metrics_nine(i,j).abScale = abScale;
             binned_metrics_nine(i,j).ellipicity = ellip;
-        else % save as nan
-            binned_metrics_nine(i,j).scale_h = NaN;
-            binned_metrics_nine(i,j).stGrd_h_el = NaN;
-            binned_metrics_nine(i,j).eccent = NaN;
-            binned_metrics_nine(i,j).orient = NaN;
-            binned_metrics_nine(i,j).xyScale = NaN;
-            binned_metrics_nine(i,j).abScale = NaN;
-            binned_metrics_nine(i,j).ellipicity = NaN;
-        end
         catch
             % In case of any failure, assign NaNs
             for m = 1:length(metric_names)

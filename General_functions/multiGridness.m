@@ -235,39 +235,79 @@ expGrd          =max(expGrd,[],1); %Max of all radi
 clear innerRadi outerRadiRange nRadi allCorr rotAmnt sel
 
 if strcmp(plotting, "plot")
+    % === Compute ellipse orientation via PCA of peak positions ===
+    peak_coords = closestPeaksCoordCentral(2:end, :);  % exclude center
+    [coeff, ~, latent] = pca(peak_coords);  % principal components
+    angle_rad = atan2(coeff(2,1), coeff(1,1));  % orientation angle
+    
+    % Lengths of ellipse axes (scaled for visibility)
+    len_major = sqrt(latent(1)) * 2;
+    len_minor = sqrt(latent(2)) * 2;
+
+    % Origin (SAC center)
+    cx = centralPoint(2);
+    cy = centralPoint(1);
+
+    % Major axis line
+    x_major = [cx - len_major * cos(angle_rad), cx + len_major * cos(angle_rad)];
+    y_major = [cy - len_major * sin(angle_rad), cy + len_major * sin(angle_rad)];
+
+    % Minor axis line (orthogonal)
+    angle_minor = angle_rad + pi/2;
+    x_minor = [cx - len_minor * cos(angle_minor), cx + len_minor * cos(angle_minor)];
+    y_minor = [cy - len_minor * sin(angle_minor), cy + len_minor * sin(angle_minor)];
+
+    % Orientation vector for arrow (scaled)
+    dx = cos(angle_rad) * 10;
+    dy = sin(angle_rad) * 10;
+
+    % === Plotting ===
     figure;
     tiledlayout(2,4, 'TileSpacing', 'compact', 'Padding', 'compact');
-    
-    nexttile(1); imagesc(map); % [1] fr map
-    axis equal; axis off; title('Firing Rate Map');
-    
-    nexttile(2); imagesc(sac); % [2] sac
-    axis equal; axis off; title('Spatial Autocorrelation (SAC)');
-    
-    nexttile(3); imagesc(lableMask); % [3] peak mask
-    axis equal; axis off;
-    title('Peak Mask (Hexagonal)');
-    
-    nexttile(4); imagesc(sac); hold on; % std gridness annulus
+
+    % Firing rate map
+    nexttile(1); imagesc(map); axis equal off;
+    title('Firing Rate Map');
+
+    % SAC
+    nexttile(2); imagesc(sac); axis equal off;
+    title('Spatial Autocorrelation');
+
+    % Peak mask
+    nexttile(3); imagesc(lableMask); axis equal off;
+    title('Peak Masks');
+
+    % Standard gridness annulus + ellipse geometry
+    nexttile(4); imagesc(sac); axis equal off; hold on;
     h = imagesc(gridnessMask);  
-    h.AlphaData = 0.3;  % Semi-transparent
-    hold on; [x,y] = find(bwperim(gridnessMask)); 
-    plot(y, x, 'k.', 'MarkerSize', 1);    
-    axis equal; axis off; title('Standard Annulus (Hexagonal)');
+    h.AlphaData = 0.3;
+    [x,y] = find(bwperim(gridnessMask)); 
+    plot(y, x, 'k.', 'MarkerSize', 1);
     
-    % Expanding Annuli 
+    % Plot ellipse axes
+    plot(x_major, y_major, 'r-', 'LineWidth', 2);   % major axis
+    plot(x_minor, y_minor, 'b--', 'LineWidth', 2);  % minor axis
+
+    % Orientation arrow
+    quiver(cx, cy, dx, dy, 0, 'k', 'LineWidth', 1.5, 'MaxHeadSize', 2);
+    
+    title('Standard Annulus + Orientation');
+
+    % Expanding annuli (4 examples)
+    total_annuli = size(gridnessMasks, 3);
     for i = 1:4
-        nexttile(4 + i); 
-        imagesc(sac); hold on;
-        h = imagesc(gridnessMasks(:,:,i*(floor(size(gridnessMasks, 3)/4))));  
-        h.AlphaData = 0.3;  % Semi-transparent
-        hold on; [x,y] = find(bwperim(gridnessMasks(:,:,i*(floor(size(gridnessMasks, 3)/4))))); 
-        plot(y, x, 'k.', 'MarkerSize', 1);        axis equal; axis off;
+        annulus_idx = round(i * total_annuli / 4);
+        nexttile(4 + i); imagesc(sac); axis equal off; hold on;
+        ann_mask = gridnessMasks(:,:,annulus_idx);
+        h = imagesc(ann_mask); h.AlphaData = 0.3;
+        [x,y] = find(bwperim(ann_mask)); 
+        plot(y, x, 'k.', 'MarkerSize', 1);
         title(sprintf('Expanding Annulus %d', i));
     end
-    
+
     sgtitle('Gridness Analysis Visualization');
 end
+
 % -------------------------------------------------------------------------------------------------
 % --- SCALE ----------------------------------------------------------------------------------
 % -------------------------------------------------------------------------------------------------

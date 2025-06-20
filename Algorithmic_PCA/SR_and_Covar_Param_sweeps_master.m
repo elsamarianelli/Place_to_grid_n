@@ -21,11 +21,17 @@
 %       - Spatial autocorrelograms (SACs)
 %       - 2D grid cell rate maps
 
+% Updates to be made
+% input option that stops any plots being generated (e.g. in GenerateEnv, etc)
+% clear variables immediately when they become redundant, to manage memory better
+% toggle to turn the parallel processing on or off, so you can use it across platforms?
+% way you store the rate maps to begin with, so that they're in a 3d matrix rather than a cell array the whole time?
+
 %% [0] SETUP & PARAMETERS
 
 % Parameters to set....
 use_SR  = false;             % true = SR matrix, false = Covariance matrix
-use_traj = 'uniform';       % uniform = every bin sampled evenly (for covar)
+use_traj = 'hasselmo';        % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
                              % thigmotaxis = '#
@@ -35,32 +41,35 @@ NonNegative = false;         % non negative PCA option - note, require different
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = true;         % true = density varies with distance to boundary
-pc_size    = true;         % true = size also varies relatively
+pc_density = false  ;         % true = density varies with distance to boundary
+pc_size    = false ;         % true = size also varies relatively
+
+mean_firing_match = true;   % true = the size of generated place fields is set such that 
+                            % the mean firing rate matches that of the varied setting
 
 % Additional parameters and environemnt details...should remain constant...
-In.pf_width_cntrl = 2;          % Field width divisor (2 = narrower PCs)
-n_iterations = 1;
-In.n_cells = 250.*9;            % number of place cells
-In.n_gcells = 250;              % n_grids
-In.n_steps = 360000.*9;         % trajectory length
-In.dim_x = 351.*3;              % environment dimensions
-In.dim_y = 252.*3;
+In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
+n_iterations = 5;
+In.n_cells = 250;           % number of place cells
+In.n_steps = 360000;        % trajectory length
+In.dim_x = 351;             % environment dimensions
+In.dim_y = 252;
 In.n_polys = 1;
-In.NumberOfPC = 300; % number of princ comps - should be the same as the number of place cells
+In.NumberOfPC = 250; % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_big'; 
+base_dir = 'grids_data_hasselmo_traj'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
 size_tag = 'sizeVaried' ; if ~ pc_size; size_tag = 'sizeConstant'; end
+uniform_ctrl_tag = 'WidthControled' ; if ~ mean_firing_match; uniform_ctrl_tag = 'WidthNormal'; end
 
 % saving 
 user_docs = fullfile(getenv('USERPROFILE'), 'Documents');  % On Windows
 dir = fullfile(user_docs, base_dir);
-output_dir = fullfile(dir, ['data_' method_tag, '_', traj_tag, '_', density_tag, '_', size_tag]);
+output_dir = fullfile(dir, ['data_' method_tag, '_', traj_tag, '_', density_tag, '_', size_tag, '_',uniform_ctrl_tag ]);
 if ~exist(output_dir, 'dir')
     mkdir(output_dir);
 end
@@ -96,7 +105,9 @@ parfor iter = 1:n_iterations
     send(dq, sprintf('Iteration %d: Load/generate trajectory...', iter));
     if strcmp(traj_tag, 'uniform')
         traj_cov = unique(combinations((1:In_local.dim_x)', (1:In_local.dim_y)'));  
-        traj = table2array([traj_cov; traj_cov]);
+        % replicate so that the the traj is roughly the same length as 2
+        % hour of hasselm trajectory (353808 steps vs 360000)
+        traj = table2array([traj_cov; traj_cov;traj_cov; traj_cov ]);
     elseif strcmp(traj_tag, 'hasselmo')    
         traj = load_premade_traj(iter);
         traj = traj(1:In_local.n_steps, :);  
@@ -104,21 +115,24 @@ parfor iter = 1:n_iterations
         traj = HasselmoForage(In_local.env, In_local.n_steps);
         traj = floor(traj);
     end
-
+    
     % [3] Generate Place Cells
     send(dq, sprintf('Iteration %d: Generate place cells...', iter));
+
     if pc_density && pc_size
         [Cells, In_local] = generate_place_cells(In_local, pc_density, pc_size);
     else
+        if mean_firing_match
         [TanniCells, In_local] = safe_generate_place_cells(In_local, true, true);
-        [best_width, UniCells, ~] = safe_tune_pf_width_to_match_activity( ...
+        [best_width, UniCells, ~] = tune_pf_width_to_match_activity( ...
             In_local, TanniCells, 20, 0.01, pc_density, pc_size);
         In_local.pf_width_cntrl = best_width;
+        end
         [Cells, In_local] = safe_generate_place_cells(In_local, pc_density, pc_size);
     end
 
     output_dir_local = fullfile(getenv('USERPROFILE'), 'Documents', base_dir, ...
-        ['data_' method_tag, '_', traj_tag, '_', density_tag, '_', size_tag]);
+        ['data_' method_tag, '_', traj_tag, '_', density_tag, '_', size_tag, '_',uniform_ctrl_tag]);
     subfolder = fullfile(output_dir_local, sprintf('iteration_%.1f', iter));
     parsave2(fullfile(subfolder, 'orig_place_cells.mat'), Cells, In_local);
     
@@ -133,11 +147,12 @@ parfor iter = 1:n_iterations
         else
             [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
             NeuronxTimeMat = NeuronxTimeMat - mean(NeuronxTimeMat, 2);
-            eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false);
+            eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false, ...
+                'NumComponents', In_local.NumberOfPC);
         end
-    else % if doing NN PCA %% mae run with others, need M matrix input
+    else % if doing NN PCA 
         zero_mean = 'spatial';
-        eigenvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
+        eigvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
     end
     
     % [5] Compute Grid Metrics
@@ -160,10 +175,41 @@ parfor iter = 1:n_iterations
     % [6] Save Results
     send(dq, sprintf('Iteration %d: Saving results...', iter));
     parsave(fullfile(subfolder, 'metrics_and_maps.mat'), GC_maps);
-    
 end
    
 disp('All done.');
-% for i = 250:10:300
+% 
+% for i = 1:5:200
 %     figure; imagesc(GC_maps{i}.map)
 % end
+% 
+% % visualise trajectory difference 
+% figure; plot(traj_hass(:,1), traj_hass(:,2), '-');
+% figure; plot(traj_uni(:,1), traj_uni(:,2), '.');
+% 
+% % Define bin size and smoothing
+% bin_size = 5;
+% sigma = 2;
+% 
+% % Define grid edges
+% edges_x = min([traj_hass(:,1); traj_uni(:,1)]):bin_size:max([traj_hass(:,1); traj_uni(:,1)]);
+% edges_y = min([traj_hass(:,2); traj_uni(:,2)]):bin_size:max([traj_hass(:,2); traj_uni(:,2)]);
+% 
+% % Compute occupancy (2D histograms)
+% occ_hass = histcounts2(traj_hass(:,2), traj_hass(:,1), edges_y, edges_x);
+% occ_uni  = histcounts2(traj_uni(:,2),  traj_uni(:,1),  edges_y, edges_x);
+% 
+% % Occupancy as a percentage the total trajectory 
+% occ_hass = occ_hass/length(traj_hass).*100;
+% occ_uni = occ_uni/length(traj_uni).*100;
+% 
+% % Smooth
+% occ_hass = imgaussfilt(occ_hass, sigma);
+% occ_uni  = imgaussfilt(occ_uni,  sigma);
+% 
+% % Plot
+% figure;
+% subplot(1,2,1); imagesc(occ_hass); axis equal off; title('HASS'); colorbar;
+% ax= gca; ax.CLim = [0, .3];
+% subplot(1,2,2); imagesc(occ_uni); axis equal off;  title('UNI'); colorbar;
+% ax= gca; ax.CLim = [0, .3];
