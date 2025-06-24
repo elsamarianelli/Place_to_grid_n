@@ -1,0 +1,113 @@
+function [a, Energy_array] = RunFISTA_NNPCA_PlaceCells(Cells, traj, sigma_vector, nCells, boundaries, iterations)
+% RUNFISTA_NNPCA_PLACECELLS
+% Performs FISTA-based Non-negative PCA (NNPCA) on place cell activity matrix.
+% Uses Gaussian difference filtering and orthogonality constraints to produce grid-like PCs.
+% Projects learned components back into environment space and plots grid-like results.
+%
+% INPUTS:
+%   Cells         : cell array of place cell structures, each with field 'fmap'
+%   traj          : trajectory [nSteps x 2] of animal's movement (x, y)
+%   sigma_vector  : [inner_sigma, outer_sigma] for DoG filter
+%   nCells        : number of components to extract
+%   boundaries    : true/false or filter mode string for boundary conditions
+%   iterations    : number of FISTA iterations
+%
+% OUTPUTS:
+%   a             : [dims, nCells] extracted component maps
+%   Energy_array  : [iterations x nCells] convergence energies
+
+% --- Reformat place cell data ---
+[format_1, ~] = reformat_firing_maps(Cells, traj); % format_1: [x, y, nCells]
+NeuronxEnvMat = reshape(format_1, [], size(format_1, 3))'; % [nNeurons x nEnvBins]
+dims = [size(format_1, 2), size(format_1, 1)];  % [y, x]
+
+D = length(dims);
+Energy_array = zeros(iterations, nCells);
+a = zeros([dims, nCells]);
+plotProgress = true;
+tol = 1e-6;  % convergence tolerance
+
+% Precompute Gaussian filtering handle
+win_size = max(sigma_vector) * 5;
+gauss_diff_conv = @(z) imblur(z, sigma_vector(1) * ones(1,D), win_size, D, boundaries) - 
+                        imblur(z, sigma_vector(2) * ones(1,D), win_size, D, boundaries);
+
+if plotProgress
+    fh1 = figure('Name', 'FISTA Grid Convergence', 'Units', 'normalized', 'OuterPosition', [0.05 0.5 0.4 0.4]);
+end
+
+for cc = 1:nCells
+    x = reshape(randn(dims), dims); x(x <= 0) = 0;
+    x = x / norm(x(:));
+    t_next = 1;
+    y = x;
+
+    for kk = 1:iterations
+        t = t_next;
+        x_prev = x;
+
+        z = y;
+        for nn = 1:(cc-1)
+            temp = a(:,:,nn) .* z;
+            z = z - a(:,:,nn) * sum(temp(:));
+        end
+
+        r = gauss_diff_conv(z);
+        grad_step = (1 / cc) * gauss_diff_conv(r);
+
+        for nn = 1:(cc-1)
+            temp = a(:,:,nn) .* grad_step;
+            grad_step = grad_step - a(:,:,nn) * sum(temp(:));
+        end
+
+        q = y + grad_step;
+        q(q < 0) = 0;
+        x = q / norm(q(:));
+
+        t_next = (1 + sqrt(1 + 4 * t^2)) / 2;
+        y = x + ((t - 1)/t_next) * (x - x_prev);
+
+        Energy_array(kk, cc) = sum(r(:).^2);
+        if kk > 1
+            rel_error = abs(1 - Energy_array(kk,cc)/Energy_array(kk-1,cc));
+            if rel_error < tol
+                Energy_array(kk+1:end,cc) = NaN;
+                break
+            end
+        end
+
+        % Update live plot during iteration
+        if plotProgress && mod(kk, 25) == 0
+            figure(fh1); clf;
+            imagesc(x); axis image off;
+            title(sprintf('Component %d | Iteration %d', cc, kk), 'FontSize', 14);
+            drawnow;
+        end
+    end
+
+    a(:,:,cc) = x;
+end
+
+% --- Project components back onto place cell input ---
+[nNeurons, ~] = size(NeuronxEnvMat);
+if size(NeuronxEnvMat, 2) ~= prod(dims)
+    error('Dimension mismatch: NeuronxEnvMat must have size [nNeurons x prod(dims)]');
+end
+
+eigvec = reshape(a, [], nCells);        % [nEnvBins x nCells]
+proj = NeuronxEnvMat * eigvec;          % [nNeurons x nCells]
+recon = NeuronxEnvMat' * proj;          % [nEnvBins x nCells]
+
+% --- Plot reconstructed maps ---
+if plotProgress
+    figure('Name', 'Reprojected Grid Maps', 'Units', 'normalized', 'OuterPosition', [0.1 0.1 0.8 0.8]);
+    for cc = 1:nCells
+        subplot(ceil(sqrt(nCells)), ceil(sqrt(nCells)), cc);
+        map = reshape(recon(:,cc), dims);
+        imagesc(map); axis image off;
+        title(sprintf('Reprojected Grid %d', cc));
+    end
+    sgtitle('Reconstructed Grid Cells from FISTA Components');
+end
+
+end

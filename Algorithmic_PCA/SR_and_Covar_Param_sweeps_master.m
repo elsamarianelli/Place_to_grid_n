@@ -37,25 +37,26 @@ use_traj = 'hasselmo';        % uniform = every bin sampled evenly (for covar)
                              % thigmotaxis = '#
 trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
 In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
-NonNegative = false;         % non negative PCA option - note, require different place cell cosntraints?
+NonNegative = true;          % non negative PCA option - note, require different place cell cosntraints?
+PCA_type ='FISTA';           % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = false  ;         % true = density varies with distance to boundary
-pc_size    = false ;         % true = size also varies relatively
+pc_density = true  ;         % true = density varies with distance to boundary
+pc_size    = true ;         % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
                             % the mean firing rate matches that of the varied setting
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
-n_iterations = 5;
+n_iterations = 1;
 In.n_cells = 250;           % number of place cells
 In.n_steps = 360000;        % trajectory length
 In.dim_x = 351;             % environment dimensions
 In.dim_y = 252;
 In.n_polys = 1;
-In.NumberOfPC = 250; % number of princ comps - should be the same as the number of place cells
+In.NumberOfPC = 100; % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
@@ -138,7 +139,8 @@ parfor iter = 1:n_iterations
     
     % [4] Generate Matrix and PCA
     send(dq, sprintf('Iteration %d: Compute eigenvectors (%s)...', iter, method_tag));
-    if ~NonNegative
+
+    if strcmp(PCA_type, 'Standard')
         if use_SR
             M = ones(In_local.n_cells); R = ones(In_local.n_cells);
             [M, ~] = trainModel(Cells, M, R, traj, 1);
@@ -150,26 +152,27 @@ parfor iter = 1:n_iterations
             eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false, ...
                 'NumComponents', In_local.NumberOfPC);
         end
-    else % if doing NN PCA 
+
+    elseif strcmp(PCA_type, 'sharp_assymptotics')
+        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
         zero_mean = 'spatial';
         eigvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
+
+    elseif strcmp(PCA_type, 'FISTA')
+        sigma_vector = [3, 9];  % tunable
+        iterations = 2000;
+        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
+        [eigvec, GC_maps] = runFISTA_PCs(NeuronxEnvMat, In_local, sigma_vector, iterations)
     end
-    
     % [5] Compute Grid Metrics
     send(dq, sprintf('Iteration %d: Getting Maps and Sacs...', iter));
-    NeuronxTimeMat = single(NeuronxTimeMat); % Trying to improve memory capacity
-    eigvec = single(eigvec);
-    GC_maps = cell(In_local.NumberOfPC, 1);     
-    for PC = 1:In_local.NumberOfPC
-        disp(PC)
-        if use_SR
-            map = cells{PC}.grid;
-        else
-            map = comb_fields(NeuronxEnvMat, eigvec(:, PC)); 
-        end
-        map = map(3:end-2, 3:end-2);
-        sac = xPearson(map);
-        GC_maps{PC} = struct('map', map, 'sac', sac);
+
+    if strcmp(PCA_type, 'FISTA')
+        sigma_vector = [5, 10];  % adjustable
+        boundaries = 'replicate';
+        iterations = 1000;
+
+        [eigvec, GC_maps, Energy_array] = RunFISTA_NNPCA_PlaceCells(NeuronxEnvMat, dims, sigma_vector, In_local.NumberOfPC, boundaries, iterations);
     end
 
     % [6] Save Results
@@ -178,38 +181,73 @@ parfor iter = 1:n_iterations
 end
    
 disp('All done.');
-% 
-% for i = 1:5:200
-%     figure; imagesc(GC_maps{i}.map)
-% end
-% 
-% % visualise trajectory difference 
-% figure; plot(traj_hass(:,1), traj_hass(:,2), '-');
-% figure; plot(traj_uni(:,1), traj_uni(:,2), '.');
-% 
-% % Define bin size and smoothing
+% %% Visiualising environemnt occupancy with trajectories
+% % ---- Define binning parameters ----
 % bin_size = 5;
 % sigma = 2;
 % 
-% % Define grid edges
+% % ---- Grid edges based on both trajectories ----
 % edges_x = min([traj_hass(:,1); traj_uni(:,1)]):bin_size:max([traj_hass(:,1); traj_uni(:,1)]);
 % edges_y = min([traj_hass(:,2); traj_uni(:,2)]):bin_size:max([traj_hass(:,2); traj_uni(:,2)]);
 % 
-% % Compute occupancy (2D histograms)
+% % ---- 2D Occupancy histograms (raw counts) ----
 % occ_hass = histcounts2(traj_hass(:,2), traj_hass(:,1), edges_y, edges_x);
 % occ_uni  = histcounts2(traj_uni(:,2),  traj_uni(:,1),  edges_y, edges_x);
 % 
-% % Occupancy as a percentage the total trajectory 
-% occ_hass = occ_hass/length(traj_hass).*100;
-% occ_uni = occ_uni/length(traj_uni).*100;
+% % ---- Normalize to percentage ----
+% occ_hass = occ_hass / length(traj_hass) * 100;
+% occ_uni  = occ_uni  / length(traj_uni)  * 100;
 % 
-% % Smooth
+% % ---- Smooth occupancy maps ----
 % occ_hass = imgaussfilt(occ_hass, sigma);
 % occ_uni  = imgaussfilt(occ_uni,  sigma);
 % 
-% % Plot
+% % ---- Separate into 3 environmental bins (corner, edge, center) ----
+% % Assume this function exists and returns a struct with fields:
+% %   .corner, .edge, .center, each with occupancy percentages
+% binned_hass = get_binned_metrics(occ_hass, 'hexagon');
+% binned_uni  = get_binned_metrics(occ_uni,  'hexagon');
+% 
+% % Extract occupancy values for bar plots (use mean or sum depending on output)
+% occ3_hass = [mean(binned_hass.corner.occ_pct), ...
+%              mean(binned_hass.edge.occ_pct), ...
+%              mean(binned_hass.center.occ_pct)];
+% 
+% occ3_uni = [mean(binned_uni.corner.occ_pct), ...
+%             mean(binned_uni.edge.occ_pct), ...
+%             mean(binned_uni.center.occ_pct)];
+% 
+% % ---- Create 2x2 plot layout ----
 % figure;
-% subplot(1,2,1); imagesc(occ_hass); axis equal off; title('HASS'); colorbar;
-% ax= gca; ax.CLim = [0, .3];
-% subplot(1,2,2); imagesc(occ_uni); axis equal off;  title('UNI'); colorbar;
-% ax= gca; ax.CLim = [0, .3];
+% 
+% % Top-left: Hasselmo occupancy heatmap
+% subplot(2,2,1);
+% imagesc(occ_hass); axis equal off;
+% title('Occupancy Heatmap – HASS');
+% colorbar;
+% axis([0, 0.3]);
+% 
+% % Top-right: Uniform occupancy heatmap
+% subplot(2,2,2);
+% imagesc(occ_uni); axis equal off;
+% title('Occupancy Heatmap – UNI');
+% colorbar;
+% axis([0, 0.3]);
+% 
+% % Bottom-left: HASS bar chart
+% subplot(2,2,3);
+% bar(occ3_hass);
+% set(gca, 'XTickLabel', {'Corner', 'Edge', 'Center'}, 'FontSize', 10);
+% ylabel('% Occupancy');
+% title('HASS Occupancy by Region');
+% ylim([0, max([occ3_hass, occ3_uni]) * 1.1]);
+% 
+% % Bottom-right: UNI bar chart
+% subplot(2,2,4);
+% bar(occ3_uni);
+% set(gca, 'XTickLabel', {'Corner', 'Edge', 'Center'}, 'FontSize', 10);
+% ylabel('% Occupancy');
+% title('UNI Occupancy by Region');
+% ylim([0, max([occ3_hass, occ3_uni]) * 1.1]);
+% 
+% sgtitle('Trajectory Occupancy and Spatial Distribution');

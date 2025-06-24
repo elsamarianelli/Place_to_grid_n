@@ -1,6 +1,11 @@
 function [binned_sac, binned_metrics_two, binned_metrics_variability] = get_binned_metrics_trapezoid(full_map, shape)
 % Divides trapezoid map into left/right halves and computes grid metrics
 
+% reset the background areas to 0 and rotate map
+full_map = rot90(full_map);
+bg_val = mode(full_map(:));              % Most frequent value
+full_map(full_map == bg_val) = NaN;             % Set background to 0
+
 % [1] Split full map into 2 vertical halves (left vs right)
 cols = size(full_map, 2);
 mid_col = floor(cols / 2);
@@ -20,14 +25,28 @@ metric_names = {'stGrd_h', 'expGrd_h', 'scale_h', ...
 binned_metrics_two = struct();
 binned_metrics_variability = struct();
 
+% Show original full map
+figure; imagesc(full_map); title('Full Rotated Map');
+
+% Compare mini maps before SAC
+figure;
+subplot(1,2,1); imagesc(mini_maps{1}); title('Left Half');
+subplot(1,2,2); imagesc(mini_maps{2}); title('Right Half');
+
+% Show SACs directly
+figure;
+subplot(1,2,1); imagesc(xPearson(mini_maps{1})); title('SAC Left');
+subplot(1,2,2); imagesc(xPearson(mini_maps{2})); title('SAC Right');
+
 % [4] Extract metrics
 metric_grid = nan(1, 2);  % left and right
 
 for b = 1:2
     map = mini_maps{b};
     sac = binned_sac{b};
+
     try
-        [stGrd, expGrd, scale] = multiGridness(sac, shape, false, map);
+        [stGrd, expGrd, scale, orient_peak] = multiGridness(sac, shape, false, map);
         [xyScale, eccent, orient, abScale, ellip] = gridEllipse_fit(sac, true);
         regSac = gridEllipse_correct(sac, abScale, orient);
         [stGrd_el, expGrd_el, scale_el] = multiGridness(regSac, shape, true, map);
@@ -41,6 +60,7 @@ for b = 1:2
             'scale_h_el',  scale_el, ...
             'eccent',      eccent, ...
             'orient',      rad2deg(orient), ...
+            'orient',      (orient_peak), ...
             'xyScale',     xyScale, ...
             'abScale',     abScale, ...
             'ellipicity',  ellip ...

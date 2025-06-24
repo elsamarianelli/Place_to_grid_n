@@ -1,4 +1,4 @@
-function [ stGrd, expGrd, scale ] = multiGridness( sac, shape, plotting, map )
+function [ stGrd, expGrd, scale, orient] = multiGridness( sac, shape, plotting, map )
 %MULTIGRIDNESS Returns standard & expanding annulus version of gridness. NB
 %can be combined with code that corrects for eliptical distortion in SAC.
 %
@@ -10,7 +10,8 @@ function [ stGrd, expGrd, scale ] = multiGridness( sac, shape, plotting, map )
 % stdGrd    standard gridness. Used in Hafting(2005)
 % expGrd    expanding gridness - test increasing radi & take highest. Used
 %           in Brandon (2011) & Killian (2012)
-%
+% orient    added by EM, returns the anticlockwise angle of the first non
+%           central peak of th esac to the x axis
 %Build based on CB's autoCorrProps so uses some preprocessing from that
 %function. Note stdGrd should be identical to the value returned for
 %gridess by autoCorrProps but is faster. expGrd checks gridness for
@@ -307,6 +308,19 @@ if strcmp(plotting, "plot")
 
     sgtitle('Gridness Analysis Visualization');
 end
+
+% -------------------------------------------------------------------------------------------------
+% --- ORIENTATION (em ADDED) ----------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------
+% Remove central peak
+non_central = xyCoordMaxBinCentral(orderOfClose(2:end), :);
+
+% Compute angle (in degrees, from x-axis, anticlockwise)
+angles = mod(atan2d(non_central(:,2), non_central(:,1)), 360);
+
+% Find the smallest angle (i.e. the peak closest to 0°)
+[~, idx] = min(angles);
+orient = angles(idx);  % Angle from x-axis (anticlockwise)
 
 % -------------------------------------------------------------------------------------------------
 % --- SCALE ----------------------------------------------------------------------------------

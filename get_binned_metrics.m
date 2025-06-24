@@ -1,4 +1,4 @@
-function [binned_sac, binned_metrics_three, binned_metrics_nine, binned_metrics_variability] = get_binned_metrics(full_map, shape)
+function [binned_sac, binned_metrics_three, binned_metrics_nine, binned_metrics_variability] = get_binned_metrics(full_map)
 % GET_BINNED_METRICS: Calculates grid-related metrics in 3x3 spatial bins.
 %
 % Outputs:
@@ -19,7 +19,9 @@ binned_sac = cellfun(@xPearson, mini_maps, 'UniformOutput', false);
 % [3] Metric names to compute
 metric_names = {'stGrd_h', 'expGrd_h', 'scale_h', ...
                 'stGrd_h_el', 'expGrd_h_el', 'scale_h_el', ...
-                'eccent', 'orient', 'xyScale', 'abScale', 'ellipicity'};
+                'eccent', 'orient', 'xyScale', 'abScale', 'ellipicity', 'orient_peak',...
+                'stGrd_s', 'expGrd_s', 'scale_s', ...
+                'stGrd_s_el', 'expGrd_s_el', 'scale_s_el'};
 
 % Init storage
 binned_metrics_nine = struct();
@@ -32,10 +34,14 @@ for i = 1:3
         sac = binned_sac{i,j};
         map = mini_maps{i,j};
         try
-            [stGrd, expGrd, scale] = multiGridness(sac, shape, false, map);
+            % calculate HEXAGONAL gridness without regularising
+            [stGrd, expGrd, scale, orient_peak] = multiGridness(sac, 'hexagon', false, map);
+            % fit ellipse
             [xyScale, eccent, orient, abScale, ellip] = gridEllipse_fit(sac, true);
+            % regularise sac
             regSac = gridEllipse_correct(sac, abScale, orient);
-            [stGrd_el, expGrd_el, scale_el] = multiGridness(regSac, shape, true, map);
+            % recalculate gridness metrics with regularised sac
+            [stGrd_el, expGrd_el, scale_el] = multiGridness(regSac, 'hexagon', true, map);
 
             binned_metrics_nine(i,j).stGrd_h     = stGrd;
             binned_metrics_nine(i,j).expGrd_h    = expGrd;
@@ -44,10 +50,34 @@ for i = 1:3
             binned_metrics_nine(i,j).expGrd_h_el = expGrd_el;
             binned_metrics_nine(i,j).scale_h_el  = scale_el;
             binned_metrics_nine(i,j).eccent      = eccent;
+
+          
+            % orient = orientation of semi major to x axis
+            % orient_peak = orientation of first peak from x axis 
+            % both in degrees and both ant clockwise
             binned_metrics_nine(i,j).orient      = rad2deg(orient); % convert to degrees
+            binned_metrics_nine(i,j).orient_peak = orient_peak;
+
             binned_metrics_nine(i,j).xyScale     = xyScale;
             binned_metrics_nine(i,j).abScale     = abScale;
             binned_metrics_nine(i,j).ellipicity  = ellip;
+
+
+            % calculate SQUARE gridness for comparison plot regularising
+            [stGrd, expGrd, scale, ~] = multiGridness(sac, 'square', false, map);
+            % fit ellipse
+            [~, ~, orient, abScale, ~] = gridEllipse_fit(sac, true);
+            % regularise sac
+            regSac = gridEllipse_correct(sac, abScale, orient);
+            % recalculate gridness metrics with regularised sac
+            [stGrd_el, expGrd_el, scale_el] = multiGridness(regSac, 'square', true, map);
+            binned_metrics_nine(i,j).stGrd_s     = stGrd;
+            binned_metrics_nine(i,j).expGrd_s    = expGrd;
+            binned_metrics_nine(i,j).scale_s     = scale;
+            binned_metrics_nine(i,j).stGrd_s_el  = stGrd_el;
+            binned_metrics_nine(i,j).expGrd_s_el = expGrd_el;
+            binned_metrics_nine(i,j).scale_s_el  = scale_el;
+
         catch
             for m = 1:numel(metric_names)
                 binned_metrics_nine(i,j).(metric_names{m}) = NaN;

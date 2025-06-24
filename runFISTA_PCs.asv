@@ -1,0 +1,114 @@
+function [eigvec, GC_maps, Energy_array] = runFISTA_NNPCA_fromPlaceCells(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)
+% RUNFISTA_NNPCA_FROMPLACECELLS
+% Implements FISTA-based Non-Negative PCA on place cell activity.
+% Inspired by Dordek et al. (2016), projecting components back into spatial domain.
+%
+% INPUTS:
+%   NeuronxEnvMat : [nNeurons x nEnvBins] matrix of place cell activity over space
+%   dims          : [y, x] environment dimensions
+%   sigma_vector  : [inner_sigma, outer_sigma] for Difference-of-Gaussians filtering
+%   nCells        : number of principal components to extract
+%   boundaries    : boundary mode string for filtering (e.g., 'replicate')
+%   iterations    : number of FISTA iterations per component
+%
+% OUTPUTS:
+%   eigvec        : [nEnvBins x nCells] spatial principal components
+%   GC_maps       : cell array of maps and SACs
+%   Energy_array  : [iterations x nCells] convergence energy tracking
+
+D = length(dims);
+a = zeros([dims, nCells]);
+Energy_array = zeros(iterations, nCells);
+tol = 1e-6;
+plotProgress = true;
+
+% Define Gaussian Difference filter
+win_size = max(sigma_vector) * 5;
+gauss_diff = @(z) imblur(z, sigma_vector(1)*ones(1,D), win_size, D, boundaries) - ...
+                  imblur(z, sigma_vector(2)*ones(1,D), win_size, D, boundaries);
+
+if plotProgress
+    fh = figure('Name', 'FISTA NNPCA Updates', 'Units', 'normalized', 'OuterPosition', [0.05 0.4 0.9 0.5]);
+end
+
+% --- FISTA Loop ---
+for cc = 1:nCells
+    x = max(randn(dims), 0);
+    x = x / norm(x(:));
+    t_next = 1;
+    y = x;
+
+    for k = 1:iterations
+        t = t_next;
+        x_prev = x;
+
+        z = y;
+        for nn = 1:cc-1
+            z = z - a(:,:,nn) * sum(sum(a(:,:,nn) .* z));
+        end
+
+        r = gauss_diff(z);
+        grad = (1 / cc) * gauss_diff(r);
+
+        for nn = 1:cc-1
+            grad = grad - a(:,:,nn) * sum(sum(a(:,:,nn) .* grad));
+        end
+
+        q = y + grad;
+        q(q < 0) = 0;
+        x = q / norm(q(:));
+
+        t_next = (1 + sqrt(1 + 4 * t^2)) / 2;
+        y = x + ((t - 1)/t_next) * (x - x_prev);
+
+        Energy_array(k, cc) = sum(r(:).^2);
+        if k > 1 && abs(1 - Energy_array(k,cc)/Energy_array(k-1,cc)) < tol
+            Energy_array(k+1:end,cc) = NaN;
+            break;
+        end
+
+        % Plot updates
+        if plotProgress && mod(k, 25) == 0
+            figure(fh);
+            tiledlayout(ceil(nCells/4), 4);
+            nexttile(cc);
+            imagesc(x); axis image off;
+            title(sprintf('Grid %d | Iter %d', cc, k), 'FontSize', 10);
+            drawnow;
+        end
+    end
+
+    a(:,:,cc) = x;
+end
+
+% Project back to space via PC projection of NeuronxEnvMat
+[nNeurons, nEnvBins] = size(NeuronxEnvMat);
+if nEnvBins ~= prod(dims)
+    error('NeuronxEnvMat must have size [nNeurons x prod(dims)]');
+end
+
+eigvec = reshape(a, [], nCells);     % [nEnvBins x nCells]
+proj = NeuronxEnvMat * eigvec;        % [nNeurons x nCells]
+recon = eigvec * proj';               % [nEnvBins x nNeurons]
+
+% --- Convert PCs to 2D spatial maps and SACs ---
+GC_maps = cell(nCells, 1);
+for cc = 1:nCells
+    map = reshape(eigvec(:,cc), dims);
+    sac = xPearson(map);
+    GC_maps{cc} = struct('map', map, 'sac', sac);
+end
+
+% Final display
+if plotProgress
+    figure('Name', 'Final Grid Maps', 'Units', 'normalized', 'OuterPosition', [0.1 0.1 0.85 0.75]);
+    tiledlayout(ceil(nCells/4), 4);
+    for cc = 1:nCells
+        nexttile;
+        imagesc(GC_maps{cc}.map); axis image off;
+        title(sprintf('Grid %d', cc));
+    end
+    sgtitle('FISTA-Reconstructed Grid Maps');
+end
+
+end
