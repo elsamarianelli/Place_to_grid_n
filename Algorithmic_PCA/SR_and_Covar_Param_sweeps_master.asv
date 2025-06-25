@@ -139,7 +139,8 @@ parfor iter = 1:n_iterations
     
     % [4] Generate Matrix and PCA
     send(dq, sprintf('Iteration %d: Compute eigenvectors (%s)...', iter, method_tag));
-    if strcmp(PCA_type,'Standard') 
+
+    if strcmp(PCA_type, 'Standard')
         if use_SR
             M = ones(In_local.n_cells); R = ones(In_local.n_cells);
             [M, ~] = trainModel(Cells, M, R, traj, 1);
@@ -151,29 +152,58 @@ parfor iter = 1:n_iterations
             eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false, ...
                 'NumComponents', In_local.NumberOfPC);
         end
-    elseif  strcmp(PCA_type,'sharp_assymptotics') % if doing NN PCA 
-        [~, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
+
+    elseif strcmp(PCA_type, 'sharp_assymptotics')
+        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
         zero_mean = 'spatial';
         eigvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
-    e
+
+    elseif strcmp(PCA_type, 'FISTA') %% not really working 
+        % sigma_vector = [3, 9];  % tunable
+        % iterations = 2000;
+        % [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
+        % [eigvec, GC_maps, Energy_array] = runFISTA_PCs(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)    
+        % Assume you have a data matrix X (neurons x time)
+        C = cov(NeuronxTimeMat');           % or C = X * X' / size(X,2);
+        K = 10;                % number of components
+        max_iter = 1000;
+
+        [V, energy] = nn_pca_fista(C, K, max_iter);
+
+        % Visualize components
+        for k = 1:K
+            subplot(ceil(K/4), 4, k);
+            bar(V(:,k));
+            title(sprintf('Comp %d', k));
+        end
+
     end
     
     % [5] Compute Grid Metrics
-    send(dq, sprintf('Iteration %d: Getting Maps and Sacs...', iter));
-    NeuronxTimeMat = single(NeuronxTimeMat); % Trying to improve memory capacity
-    eigvec = single(eigvec);
-    GC_maps = cell(In_local.NumberOfPC, 1);     
-    for PC = 1:In_local.NumberOfPC
+
+    fprintf('Computing Gridness Metrics...\n');
+    GC_metrics = cell(In.n_cells, 1);
+    h = waitbar(0, 'Processing PCs...');
+
+    for PC = 1:In.n_cells
+        waitbar(PC / In.n_cells, h);
         disp(PC)
         if use_SR
-            map = cells{PC}.grid;
+            map = cells{PC}.grid; % grid already calculated before
         else
+        % in case of Covariance matrix, combine place fields according
+        % to Principle component vectors and average
             map = comb_fields(NeuronxEnvMat, eigvec(:, PC)); 
         end
-        map = map(3:end-2, 3:end-2);
-        sac = xPearson(map);
-        GC_maps{PC} = struct('map', map, 'sac', sac);
+
+        map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
+        sac = xPearson(map); % spatial autocorrelogram
+        metrics.map = map; metrics.sac = sac;
+        GC_metrics{PC} = metrics; % save metrics
     end
+
+    close(h);
+
 
     % [6] Save Results
     send(dq, sprintf('Iteration %d: Saving results...', iter));

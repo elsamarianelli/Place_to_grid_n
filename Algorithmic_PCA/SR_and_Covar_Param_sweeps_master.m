@@ -42,8 +42,8 @@ PCA_type ='FISTA';           % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = true  ;         % true = density varies with distance to boundary
-pc_size    = true ;         % true = size also varies relatively
+pc_density = false  ;         % true = density varies with distance to boundary
+pc_size    = false ;         % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
                             % the mean firing rate matches that of the varied setting
@@ -51,7 +51,7 @@ mean_firing_match = true;   % true = the size of generated place fields is set s
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
 n_iterations = 1;
-In.n_cells = 250;           % number of place cells
+In.n_cells = 250.*10;       % number of place cells
 In.n_steps = 360000;        % trajectory length
 In.dim_x = 351;             % environment dimensions
 In.dim_y = 252;
@@ -158,22 +158,46 @@ parfor iter = 1:n_iterations
         zero_mean = 'spatial';
         eigvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
 
-    elseif strcmp(PCA_type, 'FISTA')
-        sigma_vector = [3, 9];  % tunable
-        iterations = 2000;
-        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
-        [eigvec, GC_maps] = runFISTA_PCs(NeuronxEnvMat, In_local, sigma_vector, iterations)
+    elseif strcmp(PCA_type, 'FISTA') %% not really working 
+        % sigma_vector = [3, 9];  % tunable
+        % iterations = 2000;
+        % [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
+        % [eigvec, GC_maps, Energy_array] = runFISTA_PCs(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)    
+        % Assume you have a data matrix X (neurons x time)
+        C = cov(NeuronxTimeMat');        
+        K = 300;                % number of components
+        max_iter = 2000;
+
+        [V, energy] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat);
+
     end
+    
     % [5] Compute Grid Metrics
-    send(dq, sprintf('Iteration %d: Getting Maps and Sacs...', iter));
 
-    if strcmp(PCA_type, 'FISTA')
-        sigma_vector = [5, 10];  % adjustable
-        boundaries = 'replicate';
-        iterations = 1000;
+    fprintf('Computing Gridness Metrics...\n');
+    GC_metrics = cell(In.n_cells, 1);
+    h = waitbar(0, 'Processing PCs...');
+    tiledlayout(25, 10)
+    for PC = 1:In.n_cells
+        waitbar(PC / In.n_cells, h);
+        disp(PC)
+        if use_SR
+            map = cells{PC}.grid; % grid already calculated before
+        else
+        % in case of Covariance matrix, combine place fields according
+        % to Principle component vectors and average
+            map = comb_fields(NeuronxEnvMat, eigvec(:, PC)); 
+            nexttile; imagesc(map);
+        end
 
-        [eigvec, GC_maps, Energy_array] = RunFISTA_NNPCA_PlaceCells(NeuronxEnvMat, dims, sigma_vector, In_local.NumberOfPC, boundaries, iterations);
+        map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
+        sac = xPearson(map); % spatial autocorrelogram
+        metrics.map = map; metrics.sac = sac;
+        GC_metrics{PC} = metrics; % save metrics
     end
+
+    close(h);
+
 
     % [6] Save Results
     send(dq, sprintf('Iteration %d: Saving results...', iter));

@@ -1,4 +1,4 @@
-function [eigvec, GC_maps, Energy_array] = runFISTA_NNPCA_fromPlaceCells(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)
+function [eigvec, GC_maps, Energy_array] = RunFISTA_NNPCA_PlaceCells(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)
 % RUNFISTA_NNPCA_FROMPLACECELLS
 % Implements FISTA-based Non-Negative PCA on place cell activity.
 % Inspired by Dordek et al. (2016), projecting components back into spatial domain.

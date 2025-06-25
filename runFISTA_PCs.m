@@ -87,7 +87,7 @@ if nEnvBins ~= prod(dims)
     error('NeuronxEnvMat must have size [nNeurons x prod(dims)]');
 end
 
-eigvec = reshape(a, [], nCells);     % [nEnvBins x nCells]
+eigvec = reshape(a, [], nCells);      % [nEnvBins x nCells]
 proj = NeuronxEnvMat * eigvec;        % [nNeurons x nCells]
 recon = eigvec * proj';               % [nEnvBins x nNeurons]
 
