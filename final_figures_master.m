@@ -59,7 +59,9 @@ save(fullfile(subfolder, 'metrics.mat'), 'metrics_all');
 %% [6] Plots and saves grid metrics and respective variability of each environemntel region from mean 
 show_variability = false;
 plot_grid_metrics(metrics_all, binning_mode, subfolder, show_variability);         
-     
+
+%% [] add heat map plots!
+
 %% [7] Visualise PCs ascribed to each gridness metrics
 threshold = .5;
 plot_gridness_by_region(metrics_all, threshold, subfolder)        
