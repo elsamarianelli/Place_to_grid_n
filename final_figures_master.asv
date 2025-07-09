@@ -51,8 +51,7 @@ saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 
 %% [5] Compute Grid Cell Metrics in Environment Bins
 % removes any grids where one of the environmental bin cannot fit an
-% ellipse for comprison between bins to be fair, also skips girds
-% atomatically if not enough peaks are found for speed
+% ellipse for comprison between bins to be fair
 metrics_all = compute_grid_metrics_binned(Grid_cells, binning_mode);
 save(fullfile(subfolder, 'metrics.mat'), 'metrics_all');
 

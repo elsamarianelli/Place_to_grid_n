@@ -36,7 +36,7 @@ parfor iter = 1:nIterations
                 switch binning_mode
                     case 'three'
                         [~, binned_three, binned_nine, binned_var] = get_binned_metrics(map);
-                        if any(arrayfun(@(x) any(isnan(x.scale_h)), binned_three))
+                        if any(arrayfun(@(x) any(isnan(x.eccent)), binned_three))
                             metrics_all{iter, pc} = [];
                         else
                             metrics_all{iter, pc}.three       = binned_three;

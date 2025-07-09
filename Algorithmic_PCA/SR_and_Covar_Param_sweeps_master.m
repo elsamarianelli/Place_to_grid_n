@@ -1,4 +1,31 @@
 %% Grid Cell Generation and Parameter Sweep Analysis
+% Notes to self:
+% -- run with suare not rectangular environment 
+% how to stensola determine gridness - thresholding, mean, exclusions?
+%       1) they shuffle and take over chance, 5p, 100 permutations to find
+%       grid cells
+%       2) they do expanded gridness like ours
+%       3) only take grid fields where there are at least 6 peaks in each
+%       bin for 3x3 analysis ellipsisity and orientation...gridness mean i
+%       think they take all included grids after shuffling procedure
+% plot actual mean gridness not just percent over arbitrary threshold
+% whisker plot instead of bar plots
+% winwise covariance - aka uniform tiled trajector - removing hasselmo
+% trajectory for simplicity 
+% plot on general statistics of simulation - environmnetal ccupancy, place
+% cell stats, mena firing rate plots, 
+% copy stensols other metrics as closely as possible 
+% note about stensola sterotyped trajectories potentially warping results
+% mini comp olots of gridness/scale between cvar and SR maybe to compare
+% the SR and covar in the uniform case
+% do highly sterotyped trajectories account for any aspect of the stensola
+% result, lets say we start the hasselmo trajectory in the same are aeach
+% time, and then look at ellpicity (using SR martrix) would this get some
+% weird ellipicity in one corner? onl ydo if there is time at the end...
+% need to make binned ellipse sac figure like in stensola...
+% need to add statistical comparison table generator between bar charts +
+% make plotted bar charts clearer
+
 % Author: Elsa Marianelli, UCL (2025) – zcbtetm@ucl.ac.uk
 % Adapted from: Will de Cothi (2018) – Successor Representation code
 %
@@ -31,18 +58,17 @@
 
 % Parameters to set....
 use_SR  = false;             % true = SR matrix, false = Covariance matrix
-use_traj = 'hasselmo';        % uniform = every bin sampled evenly (for covar)
+use_traj = 'uniform';       % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
 trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
 In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
-NonNegative = true;          % non negative PCA option - note, require different place cell cosntraints?
-PCA_type ='FISTA';           % FISTA or sharp_Asymptotics or Non negative
+PCA_type ='Standard';        % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = false  ;         % true = density varies with distance to boundary
-pc_size    = false ;         % true = size also varies relatively
+pc_density = true  ;        % true = density varies with distance to boundary
+pc_size    = true ;         % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
                             % the mean firing rate matches that of the varied setting
@@ -50,16 +76,16 @@ mean_firing_match = true;   % true = the size of generated place fields is set s
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 500.*3;        % number of place cells - set higher when NN = true
+In.n_cells = 500;           % number of place cells - set higher when NN = true
 In.n_steps = 360000;        % trajectory length
 In.dim_x = 351;             % environment dimensions
-In.dim_y = 252;
+In.dim_y = 351;   %    252;
 In.n_polys = 1;
-In.NumberOfPC = 250; % number of princ comps - should be the same as the number of place cells
+In.NumberOfPC = 250;        % number of grids to generate
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_will_plots'; 
+base_dir = 'grids_data_square_env_uni_traj'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -125,7 +151,7 @@ parfor iter = 1:n_iterations
         if mean_firing_match
         [TanniCells, In_local] = safe_generate_place_cells(In_local, true, true);
         [best_width, UniCells, ~] = tune_pf_width_to_match_activity( ...
-            In_local, TanniCells, 20, 0.01, pc_density, pc_size);
+            In_local, TanniCells, 30, 0.01, pc_density, pc_size);
         In_local.pf_width_cntrl = best_width;
         end
         [Cells, In_local] = safe_generate_place_cells(In_local, pc_density, pc_size);
