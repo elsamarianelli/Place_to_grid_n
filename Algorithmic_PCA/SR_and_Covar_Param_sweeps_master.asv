@@ -34,15 +34,14 @@ use_SR  = false;             % true = SR matrix, false = Covariance matrix
 use_traj = 'hasselmo';        % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
-                             % thigmotaxis = '#
 trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
 In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
-NonNegative = false;          % non negative PCA option - note, require different place cell cosntraints?
-PCA_type ='Standard';           % FISTA or sharp_Asymptotics or Non negative
+NonNegative = true;          % non negative PCA option - note, require different place cell cosntraints?
+PCA_type ='FISTA';           % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = true  ;         % true = density varies with distance to boundary
+pc_density = false  ;         % true = density varies with distance to boundary
 pc_size    = true ;         % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
@@ -158,7 +157,7 @@ parfor iter = 1:n_iterations
         zero_mean = 'spatial';
         eigvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
 
-    elseif strcmp(PCA_type, 'FISTA') %% not really working 
+    elseif strcmp(PCA_type, 'FISTA_DOG') %% not really working 
 
         % 1- Dordek DOG version for place cell size paramater
         % sweep, doesnt actually do PCA on a covar matrix 
@@ -169,11 +168,13 @@ parfor iter = 1:n_iterations
         boundaries ='replicate';%see func
         [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
         [eigvec, GC_maps, Energy_array] = runFISTA_PCs(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)    
-        
+    
+    elseif strcmp(PCA_type, 'FISTA_wang') 
+
         % 2- wang and wang FISTA version that does run on covariance matrix
         % Assume you have a data matrix X (neurons x time)
         C = cov(NeuronxTimeMat');        
-        K = In.n_cells;  % ensure you're extracting 250 components
+        K = In_local.n_cells;  % ensure you're extracting 250 components
         max_iter = 10000;
         [V, energy] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat);
 
@@ -182,9 +183,9 @@ parfor iter = 1:n_iterations
     % [5] Compute Grid Metrics
 
     fprintf('Computing Gridness Metrics...\n');
-    GC_metrics = cell(In.n_cells, 1);
+    GC_metrics = cell(In_local.NumberOfPC, 1);
 
-    for PC = 1:In.NumberOfPC
+    for PC = 1:In_local.NumberOfPC
         disp(PC);
 
         if use_SR

@@ -1,4 +1,4 @@
-function [V, energy_log] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat)
+function [V, energy_log] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat, lambda)
 % NN_PCA_FISTA
 % Performs Non-Negative PCA using FISTA on a covariance matrix of NeuronxTime
 % Implements the optimization used by Wang & Wang (2021) and Dordek (2016).
@@ -7,7 +7,7 @@ function [V, energy_log] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat)
 %   C         : [n x n] symmetric covariance matrix
 %   K         : number of non-negative components to extract
 %   max_iter  : number of FISTA iterations per component
-%
+%   lambda    : contribution of penalty term
 % OUTPUTS:
 %   V         : [n x K] matrix of non-negative eigenvectors
 %   energy_log: [max_iter x K] energy of each component over time
@@ -38,10 +38,9 @@ function [V, energy_log] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat)
         grad = @(v) -2 * C * v;  % gradient of -vᵀCv
         proj = @(v, ~) max(0, v) / norm(max(0, v));  % non-neg + normalize
         % cost = @(v) -v' * C * v;
-        lambda = 0.1;
         sz = 10;             % kernel size (e.g., 15x15)
         sigma_exc = 2;       % std dev of the excitatory Gaussian
-        sigma_inh = 4;     % std dev of the inhibitory Gaussian
+        sigma_inh = 4;       % std dev of the inhibitory Gaussian
         dims = [ 253   352]; % EM - hardcoded for now fix
         strength = 0.8;      % inhibition strength relative to excitation
         periodicity_kernel = mexican_hat_kernel(sz, sigma_exc, sigma_inh, strength);

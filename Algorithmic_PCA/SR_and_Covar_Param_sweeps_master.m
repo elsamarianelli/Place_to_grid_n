@@ -36,13 +36,13 @@ use_traj = 'hasselmo';        % uniform = every bin sampled evenly (for covar)
                              % and speed angle changes 
 trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
 In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
-NonNegative = false;          % non negative PCA option - note, require different place cell cosntraints?
-PCA_type ='Standard';           % FISTA or sharp_Asymptotics or Non negative
+NonNegative = true;          % non negative PCA option - note, require different place cell cosntraints?
+PCA_type ='FISTA';           % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
 pc_density = false  ;         % true = density varies with distance to boundary
-pc_size    = true ;         % true = size also varies relatively
+pc_size    = false ;         % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
                             % the mean firing rate matches that of the varied setting
@@ -50,7 +50,7 @@ mean_firing_match = true;   % true = the size of generated place fields is set s
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 500;       % number of place cells
+In.n_cells = 500.*3;        % number of place cells - set higher when NN = true
 In.n_steps = 360000;        % trajectory length
 In.dim_x = 351;             % environment dimensions
 In.dim_y = 252;
@@ -145,37 +145,42 @@ parfor iter = 1:n_iterations
             [M, ~] = trainModel(Cells, M, R, traj, 1);
             cells = getPlace(Cells, M, In_local.env);
             cells = getGrid(cells, M, In_local.env, 'off');
-        else
+        else % Covar
             [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
             NeuronxTimeMat = NeuronxTimeMat - mean(NeuronxTimeMat, 2);
             eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false, ...
                 'NumComponents', In_local.NumberOfPC);
         end
 
-    elseif strcmp(PCA_type, 'sharp_assymptotics')
+    elseif strcmp(PCA_type, 'sharp_assymptotics') % Motanari and Richards 2014 algorithm
+         %quite slow
         [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
         zero_mean = 'spatial';
         eigvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
 
-    elseif strcmp(PCA_type, 'FISTA') %% not really working 
+    elseif strcmp(PCA_type, 'FISTA_DOG') %% not really working 
 
         % 1- Dordek DOG version for place cell size paramater
         % sweep, doesnt actually do PCA on a covar matrix 
-        sigma_vector = [1, 2];  % tunable inner and outer sigmas for gaussian generation
-        dims = [In_local.dim_x   In_local.dim_x  ]
+        sigma_vector = [5, 10];  % tunable inner and outer sigmas for gaussian generation
+        dims = [In_local.dim_y   In_local.dim_x]
         iterations = 2000;      
         nCells = 10;           % n grid cells to generate
-        boundaries ='replicate';%see func
+        boundaries ='replicate';
         [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
         [eigvec, GC_maps, Energy_array] = runFISTA_PCs(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)    
         
-        % 2- wang and wang FISTA version that does run on covariance matrix
+    elseif strcmp(PCA_type, 'FISTA_merged') 
+
+        % 2- wang and wang FISTA version wih penalty that does run on covariance matrix
         % Assume you have a data matrix X (neurons x time)
         C = cov(NeuronxTimeMat');        
-        K = In_local.n_cells;  % ensure you're extracting 250 components
-        max_iter = 10000;
-        [V, energy] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat);
-
+        K = 30;                % number of grid cells
+        lambda = 0.05;         % contribution of DOG filter penalty term 
+                               % can adgust gaussian sizes within the
+                               % funciton
+        [V, energy] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat, lambda);
+        
     end
     
     % [5] Compute Grid Metrics
