@@ -2,9 +2,9 @@
 
 % load data
 folder = '/Users/Elsa Marianelli/Documents/';
-sub = 'grids_data_will_plots';
+sub = 'grids_data_square_env_uni_traj';
 folder = [folder sub '/'];
-basename = 'data_covar_hasselmo_densityConstant_sizeVaried_widthControled';
+basename = 'data_covar_uniform_densityVaried_sizeVaried_widthControled';
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
@@ -15,7 +15,7 @@ binning_mode = 'three';  % if rectangle use 'three' OR if trapezoid use 'trapezo
 pc_size = false; % if size Varied^
 
 % Create subfolder for saving figures
-subfolder = fullfile([sub '_figs_will'], basename);
+subfolder = fullfile([sub '_figs_square_uniform_traj'], basename);
 if ~exist(subfolder, 'dir')
     mkdir(subfolder);
 end

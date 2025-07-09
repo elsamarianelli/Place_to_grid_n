@@ -2,9 +2,9 @@
 
 % load data
 folder = '/Users/Elsa Marianelli/Documents/';
-sub = 'grids_data_will_plots';
+sub = 'grids_data_square_env_uni_traj';
 folder = [folder sub '/'];
-basename = 'data_covar_hasselmo_densityConstant_sizeVaried_widthControled';
+basename = 'data_covar_hasselmo_densityVaried_sizeVaried_widthControled';
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
@@ -51,7 +51,8 @@ saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 
 %% [5] Compute Grid Cell Metrics in Environment Bins
 % removes any grids where one of the environmental bin cannot fit an
-% ellipse for comprison between bins to be fair
+% ellipse for comprison between bins to be fair, also skips girds
+% atomatically if not enough peaks are found for speed
 metrics_all = compute_grid_metrics_binned(Grid_cells, binning_mode);
 save(fullfile(subfolder, 'metrics.mat'), 'metrics_all');
 

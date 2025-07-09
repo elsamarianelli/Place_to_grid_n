@@ -24,7 +24,8 @@
 % weird ellipicity in one corner? onl ydo if there is time at the end...
 % need to make binned ellipse sac figure like in stensola...
 % need to add statistical comparison table generator between bar charts +
-% make plotted bar charts clearer
+% make plotted bar charts clearer and put heat map plots back as this maybe
+% makes more sense as a comparison
 
 % Author: Elsa Marianelli, UCL (2025) – zcbtetm@ucl.ac.uk
 % Adapted from: Will de Cothi (2018) – Successor Representation code
@@ -241,6 +242,7 @@ parfor iter = 1:n_iterations
 end
    
 disp('All done.');
+
 % %% Visiualising environemnt occupancy with trajectories
 % % ---- Define binning parameters ----
 % bin_size = 5;
