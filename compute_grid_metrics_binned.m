@@ -1,6 +1,6 @@
 function metrics_all = compute_grid_metrics_binned(Grid_cells, binning_mode)
 % COMPUTE_GRID_METRICS_BINNED - Extracts spatial metrics from grid cell maps using binning.
-%
+
 % Inputs:
 %   Grid_cells   - Cell array of grid cell data across iterations.
 %   shape        - Shape used for SAC/gridness ('hexagon', etc.)

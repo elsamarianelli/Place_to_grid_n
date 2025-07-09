@@ -2,9 +2,9 @@
 
 % load data
 folder = '/Users/Elsa Marianelli/Documents/';
-sub = 'grids_data_trajectory_comparison';
+sub = 'grids_data_will_plots';
 folder = [folder sub '/'];
-basename = 'data_covar_hasselmo_densityConstant_sizeConstant_widthControled';
+basename = 'data_covar_hasselmo_densityConstant_sizeVaried_widthControled';
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
@@ -15,11 +15,10 @@ binning_mode = 'three';  % if rectangle use 'three' OR if trapezoid use 'trapezo
 pc_size = false; % if size Varied^
 
 % Create subfolder for saving figures
-subfolder = fullfile([sub '_figs_new'], basename);
+subfolder = fullfile([sub '_figs_will'], basename);
 if ~exist(subfolder, 'dir')
     mkdir(subfolder);
 end
-
 
 %% [2a] Visualise place cell centre distribution
 % trapezoid/rectangle
@@ -53,6 +52,7 @@ saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 %% [5] Compute Grid Cell Metrics in Environment Bins
 % warnState = warning('off', 'all');  % Turn off all warnings?
 metrics_all = compute_grid_metrics_binned(Grid_cells, binning_mode);
+% remove metrics where any are nans
 
 %% [6] Plots and saves grid metrics and respective variability of each environemntel region from mean 
 show_variability = false;

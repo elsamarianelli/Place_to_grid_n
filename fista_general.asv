@@ -27,22 +27,17 @@ function [X, iter, min_cost] = fista_general(grad, proj, Xhist, L, opts, calc_F)
     if ~isfield(opts, 'lambda'), opts.lambda = 0; end
     if ~isfield(opts, 'verbose'), opts.verbose = false; end
     if ~isfield(opts, 'adaptive_L'), opts.adaptive_L = false; end  % NEW
-    if ~isfield(opts, 'random_init'), opts.random_init = true; end
 
     %% --- Initialization ---
-    if opts.random_init
-        n = size(Xhist, 1);
-        Xinit = abs(randn(n, 1));
+    if size(Xhist, 2) > 1
+        Xinit = mean(Xhist, 2);
     else
-        if size(Xhist, 2) > 1
-            Xinit = mean(Xhist, 2);
-        else
-            Xinit = Xhist;
-        end
+        Xinit = Xhist;
     end
-    Xinit = max(Xinit, 0);
-    Xinit = Xinit / norm(Xinit);
 
+    
+    Xinit = max(Xinit, 0);              % enforce non-negativity initially
+    Xinit = Xinit / norm(Xinit);        % normalize
 
     x_old = Xinit;
     y_old = Xinit;

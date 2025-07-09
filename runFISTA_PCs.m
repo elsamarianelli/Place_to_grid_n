@@ -32,6 +32,9 @@ if plotProgress
 end
 
 % --- FISTA Loop ---
+figure(fh);
+tiledlayout(ceil(nCells.*3/3), 3, 'Padding', 'tight', 'TileSpacing', 'none');
+
 for cc = 1:nCells
     x = max(randn(dims), 0);
     x = x / norm(x(:));
@@ -48,6 +51,17 @@ for cc = 1:nCells
         end
 
         r = gauss_diff(z);
+
+        if plotProgress && mod(k, 25) == 0
+            % Show the DoG filtered component (r)
+            figure(fh);
+            nexttile((cc.*3)-2);
+            imagesc(r); axis image off;
+            title(sprintf('DoG%d|I%d', cc, k), 'FontSize', 8);
+            drawnow;
+        end
+
+
         grad = (1 / cc) * gauss_diff(r);
 
         for nn = 1:cc-1
@@ -66,14 +80,19 @@ for cc = 1:nCells
             Energy_array(k+1:end,cc) = NaN;
             break;
         end
-
+        % 
         % Plot updates
         if plotProgress && mod(k, 25) == 0
-            figure(fh);
-            tiledlayout(ceil(nCells/4), 4);
-            nexttile(cc);
+            nexttile((cc.*3-1));
             imagesc(x); axis image off;
-            title(sprintf('Grid %d | Iter %d', cc, k), 'FontSize', 10);
+            title(sprintf('Grid%d', cc, k), 'FontSize', 10);
+            drawnow;
+        end
+        % Plot sac
+        if plotProgress && mod(k, 25) == 0
+            nexttile((cc.*3));
+            imagesc(xPearson(x)); axis image off;
+            title(sprintf('SAC%d', cc, k), 'FontSize', 10);
             drawnow;
         end
     end

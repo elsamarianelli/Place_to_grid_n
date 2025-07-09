@@ -34,33 +34,32 @@ use_SR  = false;             % true = SR matrix, false = Covariance matrix
 use_traj = 'hasselmo';        % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
-                             % thigmotaxis = '#
 trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
 In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
-NonNegative = true;          % non negative PCA option - note, require different place cell cosntraints?
-PCA_type ='FISTA';           % FISTA or sharp_Asymptotics or Non negative
+NonNegative = false;          % non negative PCA option - note, require different place cell cosntraints?
+PCA_type ='Standard';           % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
 pc_density = false  ;         % true = density varies with distance to boundary
-pc_size    = false ;         % true = size also varies relatively
+pc_size    = true ;         % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
                             % the mean firing rate matches that of the varied setting
 
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
-n_iterations = 1;
-In.n_cells = 250.*10;       % number of place cells
+n_iterations = 5;
+In.n_cells = 500;       % number of place cells
 In.n_steps = 360000;        % trajectory length
 In.dim_x = 351;             % environment dimensions
 In.dim_y = 252;
 In.n_polys = 1;
-In.NumberOfPC = 100; % number of princ comps - should be the same as the number of place cells
+In.NumberOfPC = 250; % number of princ comps - should be the same as the number of place cells
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_hasselmo_traj'; 
+base_dir = 'grids_data_will_plots'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -159,15 +158,22 @@ parfor iter = 1:n_iterations
         eigvec = runNNPCA(NeuronxTimeMat, In_local.NumberOfPC, zero_mean);
 
     elseif strcmp(PCA_type, 'FISTA') %% not really working 
-        % sigma_vector = [3, 9];  % tunable
-        % iterations = 2000;
-        % [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
-        % [eigvec, GC_maps, Energy_array] = runFISTA_PCs(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)    
+
+        % 1- Dordek DOG version for place cell size paramater
+        % sweep, doesnt actually do PCA on a covar matrix 
+        sigma_vector = [1, 2];  % tunable inner and outer sigmas for gaussian generation
+        dims = [In_local.dim_x   In_local.dim_x  ]
+        iterations = 2000;      
+        nCells = 10;           % n grid cells to generate
+        boundaries ='replicate';%see func
+        [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
+        [eigvec, GC_maps, Energy_array] = runFISTA_PCs(NeuronxEnvMat, dims, sigma_vector, nCells, boundaries, iterations)    
+        
+        % 2- wang and wang FISTA version that does run on covariance matrix
         % Assume you have a data matrix X (neurons x time)
         C = cov(NeuronxTimeMat');        
-        K = 300;                % number of components
-        max_iter = 2000;
-
+        K = In_local.n_cells;  % ensure you're extracting 250 components
+        max_iter = 10000;
         [V, energy] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat);
 
     end
@@ -175,33 +181,32 @@ parfor iter = 1:n_iterations
     % [5] Compute Grid Metrics
 
     fprintf('Computing Gridness Metrics...\n');
-    GC_metrics = cell(In.n_cells, 1);
-    h = waitbar(0, 'Processing PCs...');
-    tiledlayout(25, 10)
-    for PC = 1:In.n_cells
-        waitbar(PC / In.n_cells, h);
-        disp(PC)
+    GC_metrics = cell(In_local.NumberOfPC, 1);
+
+    for PC = 1:In_local.NumberOfPC
+        disp(PC);
+
         if use_SR
-            map = cells{PC}.grid; % grid already calculated before
+            map = cells{PC}.grid;
         else
-        % in case of Covariance matrix, combine place fields according
-        % to Principle component vectors and average
-            map = comb_fields(NeuronxEnvMat, eigvec(:, PC)); 
-            nexttile; imagesc(map);
+            map = comb_fields(NeuronxEnvMat, eigvec(:, PC));
         end
 
-        map = map(3:end-2, 3:end-2);  % remove boundaried sections so you dont get line sin the sac
-        sac = xPearson(map); % spatial autocorrelogram
-        metrics.map = map; metrics.sac = sac;
-        GC_metrics{PC} = metrics; % save metrics
+        map = map(3:end-2, 3:end-2);
+        sac = xPearson(map);
+
+        metrics = struct();
+        metrics.map = map;
+        metrics.sac = sac;
+
+        GC_metrics{PC} = metrics; 
     end
 
-    close(h);
 
 
     % [6] Save Results
     send(dq, sprintf('Iteration %d: Saving results...', iter));
-    parsave(fullfile(subfolder, 'metrics_and_maps.mat'), GC_maps);
+    parsave(fullfile(subfolder, 'metrics_and_maps.mat'), GC_metrics);
 end
    
 disp('All done.');

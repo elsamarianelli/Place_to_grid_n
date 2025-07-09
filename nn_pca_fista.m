@@ -23,7 +23,10 @@ function [V, energy_log] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat)
     opts.lambda = 0;         % no extra penalty
     opts.max_iter = max_iter;
     opts.tol = 1e-4;        % tolerance for breaing search 
-    opts.verbose = false;
+    opts.verbose = true;  
+    opts.adaptive_L = true;
+    opts.random_init = true; % random initionalisation or average of last 5 maps as initialition 
+    % (was an attempt to make faster but not sure it makes sense)
     tlo = tiledlayout(ceil(K/10), 10.*2, ...
     'TileSpacing', 'none', ...
     'Padding', 'compact');
@@ -34,7 +37,16 @@ function [V, energy_log] = nn_pca_fista(C, K, max_iter, NeuronxEnvMat)
         % --- Define optimization problem ---
         grad = @(v) -2 * C * v;  % gradient of -vᵀCv
         proj = @(v, ~) max(0, v) / norm(max(0, v));  % non-neg + normalize
-        cost = @(v) -v' * C * v;
+        % cost = @(v) -v' * C * v;
+        lambda = 0.1;
+        sz = 10;             % kernel size (e.g., 15x15)
+        sigma_exc = 2;       % std dev of the excitatory Gaussian
+        sigma_inh = 4;     % std dev of the inhibitory Gaussian
+        dims = [ 253   352]; % EM - hardcoded for now fix
+        strength = 0.8;      % inhibition strength relative to excitation
+        periodicity_kernel = mexican_hat_kernel(sz, sigma_exc, sigma_inh, strength);
+        cost = @(v) -v' * C * v + ...
+            lambda * norm(conv2(reshape(comb_fields(NeuronxEnvMat, v), dims), periodicity_kernel, 'same'), 'fro')^2;
 
         % --- Initialize ---
         x0 = abs(randn(n, 1));
