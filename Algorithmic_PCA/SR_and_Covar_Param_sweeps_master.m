@@ -1,31 +1,33 @@
 %% Grid Cell Generation and Parameter Sweep Analysis
 % Notes to self:
-% -- run with suare not rectangular environment 
+% -- run with sqare not rectangular environment 
 % how to stensola determine gridness - thresholding, mean, exclusions?
-%       1) they shuffle and take over chance, 5p, 100 permutations to find
+%       leav this --- 1) they shuffle and take over chance, 5p, 100 permutations to find
 %       grid cells
-%       2) they do expanded gridness like ours
-%       3) only take grid fields where there are at least 6 peaks in each
+%       --- 2) they do expanded gridness like ours
+%       done --- 3) only take grid fields where there are at least 6 peaks in each
 %       bin for 3x3 analysis ellipsisity and orientation...gridness mean i
 %       think they take all included grids after shuffling procedure
-% plot actual mean gridness not just percent over arbitrary threshold
-% whisker plot instead of bar plots
-% winwise covariance - aka uniform tiled trajector - removing hasselmo
-% trajectory for simplicity 
+% --- plot actual mean gridness not just percent over arbitrary threshold
+% --- whisker plot instead of bar plots
+% --- bin wise covariance - aka uniform tiled trajector - removing hasselmo
+% --- trajectory for simplicity 
 % plot on general statistics of simulation - environmnetal ccupancy, place
-% cell stats, mena firing rate plots, 
-% copy stensols other metrics as closely as possible 
+% cell stats, mena firing rate plots,
+% need to add statistical comparison table generator between bar charts +
+% need to make binned ellipse sac figure like in stensola...
+
+
+% EXTRA...
 % note about stensola sterotyped trajectories potentially warping results
 % mini comp olots of gridness/scale between cvar and SR maybe to compare
 % the SR and covar in the uniform case
 % do highly sterotyped trajectories account for any aspect of the stensola
-% result, lets say we start the hasselmo trajectory in the same are aeach
+% result, lets say we start the hasselmo trajectory in the same are each
 % time, and then look at ellpicity (using SR martrix) would this get some
 % weird ellipicity in one corner? onl ydo if there is time at the end...
-% need to make binned ellipse sac figure like in stensola...
-% need to add statistical comparison table generator between bar charts +
-% make plotted bar charts clearer and put heat map plots back as this maybe
-% makes more sense as a comparison
+
+
 
 % Author: Elsa Marianelli, UCL (2025) – zcbtetm@ucl.ac.uk
 % Adapted from: Will de Cothi (2018) – Successor Representation code

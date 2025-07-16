@@ -118,6 +118,14 @@ elseif drawFig==1
         line([cx, closestPeaksCoord(k,1)], [cy, closestPeaksCoord(k,2)], 'Color', [1 0.5 0], 'LineWidth', 1.5);
     end
 
+    % Draw semi-major axis (white)
+    phi = elipseData.phi;
+    a = elipseData.a;
+    x1 = cx + a*cos(phi);
+    y1 = cy + a*sin(phi);
+    x2 = cx - a*cos(phi);
+    y2 = cy - a*sin(phi);
+    line([x1 x2], [y1 y2], 'Color', 'w', 'LineWidth', 1.5);
     hold off
 end
 %Check if an ellipse was fit - if not elipseData will be empty
@@ -428,8 +436,8 @@ if (nargin>2) & ~isempty( axis_handle ) & (test>0)
     % draw
     hold_state = get( axis_handle,'NextPlot' );
     set( axis_handle,'NextPlot','add' );
-    plot( new_ver_line(1,:),new_ver_line(2,:),'w', 'LineWidth',1 );
-    plot( new_horz_line(1,:),new_horz_line(2,:),'w', 'LineWidth',1);
+    plot( new_ver_line(1,:),new_ver_line(2,:),'r', 'LineWidth',1 );
+    plot( new_horz_line(1,:),new_horz_line(2,:),'r', 'LineWidth',1);
     plot( rotated_ellipse(1,:),rotated_ellipse(2,:),'k', 'LineWidth',1 );
     set( axis_handle,'NextPlot',hold_state );
 end

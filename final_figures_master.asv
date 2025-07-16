@@ -4,7 +4,7 @@
 folder = '/Users/Elsa Marianelli/Documents/';
 sub = 'grids_data_square_env_uni_traj';
 folder = [folder sub '/'];
-basename = 'data_covar_hasselmo_densityVaried_sizeVaried_widthControled';
+basename = 'data_covar_uniform_densityVaried_sizeVaried_WidthControled';
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
@@ -15,7 +15,7 @@ binning_mode = 'three';  % if rectangle use 'three' OR if trapezoid use 'trapezo
 pc_size = false; % if size Varied^
 
 % Create subfolder for saving figures
-subfolder = fullfile([sub '_figs_will'], basename);
+subfolder = fullfile([sub '_testing_new_plots'], basename);
 if ~exist(subfolder, 'dir')
     mkdir(subfolder);
 end
@@ -49,6 +49,7 @@ for i = 1:20
 end
 saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 
+%% [4B] Example of ellipse fitted to an exampl
 %% [5] Compute Grid Cell Metrics in Environment Bins
 % removes any grids where one of the environmental bin cannot fit an
 % ellipse for comprison between bins to be fair, also skips girds
@@ -57,9 +58,8 @@ metrics_all = compute_grid_metrics_binned(Grid_cells, binning_mode);
 save(fullfile(subfolder, 'metrics.mat'), 'metrics_all');
 
 %% [6] Plots and saves grid metrics and respective variability of each environemntel region from mean 
-show_variability = false;
-plot_grid_metrics(metrics_all, binning_mode, subfolder, show_variability);         
-     
+plot_grid_metrics(metrics_all,subfolder)
+
 %% [7] Visualise PCs ascribed to each gridness metrics
 threshold = .5;
 plot_gridness_by_region(metrics_all, threshold, subfolder)        

@@ -4,7 +4,7 @@
 folder = '/Users/Elsa Marianelli/Documents/';
 sub = 'grids_data_square_env_uni_traj';
 folder = [folder sub '/'];
-basename = 'data_covar_uniform_densityVaried_sizeVaried_widthControled';
+basename = 'data_covar_uniform_densityVaried_sizeVaried_WidthControled';
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
@@ -15,7 +15,7 @@ binning_mode = 'three';  % if rectangle use 'three' OR if trapezoid use 'trapezo
 pc_size = false; % if size Varied^
 
 % Create subfolder for saving figures
-subfolder = fullfile([sub '_figs_square_uniform_traj'], basename);
+subfolder = fullfile([sub '_testing_new_plots'], basename);
 if ~exist(subfolder, 'dir')
     mkdir(subfolder);
 end
@@ -49,6 +49,43 @@ for i = 1:20
 end
 saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 
+%% [4B] Example of ellipse fitted to an example grid cell for each bin
+for ind= 120:10:200
+    try
+        map = Grid_cells{1}{ind}.map;
+        % plot map
+        figure;
+        imagesc(map)
+        % Divide map into 3x3 blocks
+        [rows, cols] = size(map);
+        row_blocks = round([rows/3, rows/3, rows - 2*round(rows/3)]);
+        col_blocks = round([cols/3, cols/3, cols - 2*round(cols/3)]);
+        mini_maps = mat2cell(map, row_blocks, col_blocks);
+
+        % -Compute SACs for each bin
+        binned_sac = cellfun(@xPearson, mini_maps, 'UniformOutput', false);
+
+        % plt sacs and fitted elipses
+        figure;
+        tiledlayout(3,3, 'Padding','none')
+        % Compute metrics for each bin
+        for i = 1:3
+            for j = 1:3
+                ax = nexttile;
+                map = mini_maps{i,j};
+                sac = binned_sac{i,j};
+                imagesc(sac);hold on;
+                [xyScale, eccent, orient, abScale, ellip] = gridEllipse_fit(sac, true);
+                axis equal tight
+                ax.XTick = [];
+                ax.YTick = [];
+                ax.XColor = 'none';
+                ax.YColor = 'none';
+            end
+        end
+    catch
+    end
+end
 %% [5] Compute Grid Cell Metrics in Environment Bins
 % removes any grids where one of the environmental bin cannot fit an
 % ellipse for comprison between bins to be fair, also skips girds
@@ -57,10 +94,7 @@ metrics_all = compute_grid_metrics_binned(Grid_cells, binning_mode);
 save(fullfile(subfolder, 'metrics.mat'), 'metrics_all');
 
 %% [6] Plots and saves grid metrics and respective variability of each environemntel region from mean 
-show_variability = false;
-plot_grid_metrics(metrics_all, binning_mode, subfolder, show_variability);         
-
-%% [] add heat map plots!
+plot_grid_metrics(metrics_all,subfolder)
 
 %% [7] Visualise PCs ascribed to each gridness metrics
 threshold = .5;

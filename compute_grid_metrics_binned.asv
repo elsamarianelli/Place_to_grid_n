@@ -16,7 +16,6 @@ metrics_all = cell(nIterations, nPCs);
 parfor iter = 1:nIterations
     disp(iter)
     for pc = 1:nPCs
-        
             map = Grid_cells{iter}
             map = map{pc}.map
             sac = xPearson(map);
@@ -24,7 +23,7 @@ parfor iter = 1:nIterations
             if expGrd > .2 % arbitrary low threshold
 
             try
-
+                
                 % Select binning function
                 switch binning_mode
                     case 'three'
