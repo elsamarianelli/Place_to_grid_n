@@ -54,8 +54,12 @@ end
 % === [3] Assign bins to 3x3 regions ===
 region_labels = {'Corners', 'Edges Ver.', 'Edges Hor.', 'Center'};
 region_ids = { [1 3 7 9], [4 6], [2 8], 5 };
-colors = {[0.85 0.75 0.95], [0.65 0.5 0.85], [0.65 0.5 0.85], [0.45 0.35 0.65]};
-
+colors = {
+    [0.75 0.85 0.95],  % light blue
+    [0.45 0.65 0.85],  % medium light blue
+    [0.30 0.50 0.75],  % medium blue
+    [0.15 0.30 0.55]   % dark blue
+};
 [nRows, nCols] = size(In.env.map);
 row_thirds = floor(nRows / 3);
 col_thirds = floor(nCols / 3);

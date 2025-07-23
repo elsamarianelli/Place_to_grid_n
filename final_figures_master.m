@@ -2,7 +2,7 @@
 
 % load data
 folder = '/Users/Elsa Marianelli/Documents/';
-sub = 'grids_data_square_env_uni_traj';
+sub = 'grids_data_trapezoid_env_uni_traj';
 folder = [folder sub '/'];
 basename = 'data_covar_uniform_densityVaried_sizeVaried_WidthControled';
 nIterations = 5;
@@ -10,12 +10,12 @@ nIterations = 5;
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
 
 % options for metrics and plotting 
-env_shape = 'rectangle'; % 'rectangle' OR 'trapezoid' 
+env_shape = 'trapezoid'; % 'rectangle' OR 'trapezoid' 
 binning_mode = 'three';  % if rectangle use 'three' OR if trapezoid use 'trapezoid_lr'
-pc_size = false; % if size Varied^
+pc_size = true; % if size Varied^
 
 % Create subfolder for saving figures
-subfolder = fullfile([sub '_testing_new_plots'], basename);
+subfolder = fullfile([sub '_SR'], basename);
 if ~exist(subfolder, 'dir')
     mkdir(subfolder);
 end
@@ -31,7 +31,7 @@ plot_field_width(Place_cells, Info, subfolder, pc_size)
 figure;
 for i = 1:10
     map = Place_cells{i*12}.fmap;
-    subplot(2, 5, i); imagesc(map); colormap("jet"); hold on;
+    subplot(2, 5, i); imagesc(map); hold on;
     % plot(boundary_coords(:,1), boundary_coords(:,2), 'w.');
     axis off; axis image;
 end
@@ -41,28 +41,27 @@ saveas(gcf, fullfile(subfolder, 'Figure_B_place.svg'));
 figure;
 for i = 1:20
     map = Grid_cells{1}{i*10}.map;  
+    % map = cells{i*10}.grid;
     bg_val = mode(map(:));                % Most frequent value
     map(map == bg_val) = NaN;             % Set background to 0
-    subplot(4, 5, i); imagesc(rot90(map)); colormap("jet"); hold on;
+    subplot(4, 5, i); imagesc(rot90(map)); hold on;
     % plot(boundary_coords(:,1), boundary_coords(:,2), 'k.');
     axis off; axis image;
 end
 saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 
 %% [4B] Example of ellipse fitted to an example grid cell for each bin
-for ind= 120:10:200
+for ind= 220:1:230
     try
         map = Grid_cells{1}{ind}.map;
-        % plot map
-        figure;
-        imagesc(map)
+
         % Divide map into 3x3 blocks
         [rows, cols] = size(map);
         row_blocks = round([rows/3, rows/3, rows - 2*round(rows/3)]);
         col_blocks = round([cols/3, cols/3, cols - 2*round(cols/3)]);
         mini_maps = mat2cell(map, row_blocks, col_blocks);
 
-        % -Compute SACs for each bin
+        % Compute SACs for each bin
         binned_sac = cellfun(@xPearson, mini_maps, 'UniformOutput', false);
 
         % plt sacs and fitted elipses
@@ -86,6 +85,8 @@ for ind= 120:10:200
     catch
     end
 end
+saveas(gcf, fullfile(subfolder, ['Example_binned_grid_with_ellipses' num2str(ind) '.svg']));
+
 %% [5] Compute Grid Cell Metrics in Environment Bins
 % removes any grids where one of the environmental bin cannot fit an
 % ellipse for comprison between bins to be fair, also skips girds
@@ -93,7 +94,8 @@ end
 metrics_all = compute_grid_metrics_binned(Grid_cells, binning_mode);
 save(fullfile(subfolder, 'metrics.mat'), 'metrics_all');
 
-%% [6] Plots and saves grid metrics and respective variability of each environemntel region from mean 
+%% [6] Plots and saves grid metrics and respective variability of each environemntel region from mean
+%  bar plots, heatmaps, and metrics table with comparisons
 plot_grid_metrics(metrics_all,subfolder)
 
 %% [7] Visualise PCs ascribed to each gridness metrics

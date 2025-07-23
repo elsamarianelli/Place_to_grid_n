@@ -1,0 +1,125 @@
+function compile_grid_figures(baseFolder)
+% Compile 9 plot types from four place‑cell conditions into one master figure.
+baseFolder = '\Users\Elsa Marianelli\Documents\grids_data_square_env_uni_traj_plots_and_comps';
+
+basenames = { ...
+    'data_covar_uniform_densityConstant_sizeConstant_WidthControled', ...
+    'data_covar_uniform_densityVaried_sizeVaried_WidthControled', ...
+    'data_covar_uniform_densityConstant_sizeVaried_WidthControled', ...
+    'data_covar_uniform_densityVaried_sizeConstant_WidthControled' };
+
+fileList = { ...
+    'Bar_expGrd_h.fig',          'Heatmap_expGrd_h.fig', ...
+    'Bar_expGrd_h_el.fig',       'Heatmap_expGrd_h_el.fig',...
+    'Bar_orient_peak.fig',       'Heatmap_orient_peak.fig', ...
+    'Bar_scale_h.fig',           'Heatmap_scale_h.fig', ...
+    'Bar_eccent.fig',            'Heatmap_eccent.fig' };
+
+colTitles = { ...
+    'Gridness',  '', ...
+    'Gridness regularised ', '', ...
+    'Orientation ', '', ...
+    'Scale ', '', ...
+    'Eccentricity ', '' };
+
+% Optional axis limits for each column
+yLimits = {[.20 .60], [],[.5 .90], [], [0 20], [], [40 60], [], [0.4 0.8], []};
+climList = {[], [.35 .50], [],[.7 .85], [], [6 12], [], [45 55], [], [0.5 0.7]};
+% xLimits = {[], [], [], [], [], [], [], []};
+
+nRows = numel(basenames);
+nCols = numel(fileList);
+
+masterFig = figure('Units','inches','Position',[1 1 18 8], ...
+    'Color','w','Name','Compiled Grid Figures');
+tlo = tiledlayout(masterFig,nRows,nCols);
+
+for r = 1:nRows
+    srcFolder = fullfile(baseFolder,[basenames{r}]);
+
+    for c = 1:nCols
+        axDest = nexttile(tlo,(r-1)*nCols+c);
+        axis(axDest,'off');
+
+        fpath = fullfile(srcFolder, fileList{c});
+        if exist(fpath, 'file')
+            hSrcFig = openfig(fpath, 'invisible');
+            axSrcList = findall(hSrcFig, 'type', 'axes');
+            for k = numel(axSrcList):-1:1
+                axSrc = axSrcList(k);
+                newAx = copyobj(axSrc, masterFig);
+                set(newAx, 'Position', get(axDest, 'Position'), ...
+                    'Units', 'normalized', 'FontSize', 16, 'LineWidth', 1.5);
+
+                % Remove subplot titles
+                titleHandles = get(newAx, 'Title');
+                if isgraphics(titleHandles)
+                    set(titleHandles, 'String', '');
+                end
+
+                % Remove x-tick labels except on last row
+                if r < nRows
+                    set(newAx, 'XTickLabel', []);
+                end
+
+              if contains(fileList{c}, 'Heatmap')
+                  colormap(newAx, gray);
+                  axis(newAx, 'image');
+                  box(newAx, 'off');
+
+                  % Get grayscale range from a predefined list
+                  clim = climList{c};  % climList should be a cell array of [cmin cmax] vectors
+
+                  % Apply the limits if valid
+                  if ~isempty(clim) && numel(clim) == 2 && clim(1) < clim(2)
+                      set(newAx, 'CLim', clim);
+                  else
+                      % Fallback to auto normalization if no valid clim provided
+                      children = findall(newAx, 'Type', 'Image');
+                      if ~isempty(children)
+                          cdata = get(children(1), 'CData');
+                          cmin = min(cdata(:), [], 'omitnan');
+                          cmax = max(cdata(:), [], 'omitnan');
+                          if cmin < cmax
+                              set(newAx, 'CLim', [cmin cmax]);
+                          end
+                      end
+                  end
+
+                  cb = colorbar(newAx);
+                  cb.FontSize = 14;
+              end
+
+
+                % % % Set limits if specified
+                % if ~isempty(xLimits{c}) && isprop(newAx, 'XLim')
+                %     set(newAx, 'XLim', xLimits{c});
+                % end
+                if ~isempty(yLimits{c}) && isprop(newAx, 'YLim')
+                    set(newAx, 'YLim', yLimits{c});
+                end
+            end
+
+            close(hSrcFig);
+
+            if r == 1
+                title(axDest, colTitles{c}, 'FontSize', 14, 'Interpreter', 'none', 'FontWeight', 'bold');
+            end
+        else
+            text(axDest, 0.5, 0.5, '(missing)', 'HorizontalAlignment','center');
+        end
+    end
+end
+
+saveas(masterFig, fullfile(baseFolder,'Compiled_Grid_Figures.fig'));
+exportgraphics(masterFig, fullfile(baseFolder,'Compiled_Grid_Figures.pdf'), ...
+               'ContentType','vector');
+exportgraphics(masterFig, fullfile(baseFolder,'Compiled_Grid_Figures.png'), ...
+               'Resolution',300);
+exportgraphics(masterFig, ...
+    fullfile(baseFolder, 'Compiled_Grid_Figures.svg'), ...
+    'ContentType', 'vector', ...
+    'BackgroundColor', 'none');  % Optional for transparent SVGs
+
+disp('Compiled figure saved.');
+end

@@ -63,10 +63,10 @@ In.env.In.dim_y = In.dim_y + 1; % Height of the In.environment
 In.env.L = L;           % Labeled regions in the In.environment
 
 % Plot the generated In.environment
-% figure;
-% imagesc(~map);       % Display the In.environment, flipping black/white for visibility
-% colormap gray;       % Use grayscale colormap
-% axis xy on;          % Turn on the axis and ensure correct orientation
-% title('Image of In.environment', 'FontWeight', 'normal');
+figure;
+imagesc(~map);       % Display the In.environment, flipping black/white for visibility
+colormap gray;       % Use grayscale colormap
+axis xy on;          % Turn on the axis and ensure correct orientation
+title('Image of In.environment', 'FontWeight', 'normal');
 
 end

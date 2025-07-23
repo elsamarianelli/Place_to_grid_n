@@ -60,18 +60,21 @@
 %% [0] SETUP & PARAMETERS
 
 % Parameters to set....
-use_SR  = false;             % true = SR matrix, false = Covariance matrix
-use_traj = 'uniform';       % uniform = every bin sampled evenly (for covar)
+use_SR  = true;             % true = SR matrix, false = Covariance matrix
+use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
-trap_add = 0;                % set environment warping - 0 = normal rectangle, use 80 for trapezoid?
+% lengths of the shorter and longer parallel walls 0.2m and 
+% 0.9m respectively with angled walls equal to 1.9m; 0.5 m height - krupic
+% dimensions - dimensions here match this 
+trap_add = 0;%(351-78)/2;               % set environment warping - 0 = normal rectangle, use 136 for trapezoid?
 In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
 PCA_type ='Standard';        % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = true  ;        % true = density varies with distance to boundary
-pc_size    = true ;         % true = size also varies relatively
+pc_density = false  ;        % true = density varies with distance to boundary
+pc_size    = false   ;         % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
                             % the mean firing rate matches that of the varied setting
@@ -79,16 +82,16 @@ mean_firing_match = true;   % true = the size of generated place fields is set s
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 500;           % number of place cells - set higher when NN = true
+In.n_cells = 250;           % number of place cells - set higher when NN = true
 In.n_steps = 360000;        % trajectory length
-In.dim_x = 351;             % environment dimensions
-In.dim_y = 351;   %    252;
+In.dim_x = 351;% 728;             % environment dimensions
+In.dim_y = 351;             % y = 351 for square, 195 for trapezoid;
 In.n_polys = 1;
 In.NumberOfPC = 250;        % number of grids to generate
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_square_env_uni_traj'; 
+base_dir = 'grids_data_square_env_uni_traj_SR'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -170,10 +173,11 @@ parfor iter = 1:n_iterations
 
     if strcmp(PCA_type, 'Standard')
         if use_SR
-            M = ones(In_local.n_cells); R = ones(In_local.n_cells);
+             M = ones(In_local.n_cells); R = ones(In_local.n_cells);
             [M, ~] = trainModel(Cells, M, R, traj, 1);
             cells = getPlace(Cells, M, In_local.env);
-            cells = getGrid(cells, M, In_local.env, 'off');
+            cells = getGrid(cells, M, In_local.env); %, 'off');
+         
         else % Covar
             [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
             NeuronxTimeMat = NeuronxTimeMat - mean(NeuronxTimeMat, 2);

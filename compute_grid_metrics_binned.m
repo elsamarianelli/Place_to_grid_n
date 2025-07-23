@@ -19,9 +19,10 @@ parfor iter = 1:nIterations
         
             map = Grid_cells{iter}
             map = map{pc}.map
-            sac = xPearson(map);
-            [~, expGrd, ~, ~] = multiGridness(sac, 'hexagon', false, map);
-            if expGrd > .2 % arbitrary low threshold
+            % sac = xPearson(map);
+            % [~, expGrd, ~, ~] = multiGridness(sac, 'hexagon', false, map);
+            % 
+            % if expGrd > .4 % arbitrary low threshold to speed up...
 
             try
 
@@ -30,16 +31,17 @@ parfor iter = 1:nIterations
                     case 'three'
                         [~, binned_three, binned_nine, binned_var] = get_binned_metrics(map);
                         % if anything of the bins fail to have an elipse
-                        % fitted exclude the whole pc
+                        % fitted exclude the whole pc - change to plotting
+                        % because need to have ALL gridness 
 
-                        if any(arrayfun(@(x) any(isnan(x.eccent)), binned_three))
-                            metrics_all{iter, pc} = [];
-                        else
+                        % if any(arrayfun(@(x) any(isnan(x.eccent)), binned_three))
+                        %     metrics_all{iter, pc} = [];
+                        % else
                             metrics_all{iter, pc}.three       = binned_three;
                             metrics_all{iter, pc}.nine        = binned_nine;
                             metrics_all{iter, pc}.variability = binned_var;
-                        end
-
+                        % end
+                        
                     case 'trapezoid_lr' %% need to change
                         map = rot90(map)
                         [~, binned_two, binned_var2] = get_binned_metrics_trapezoid(map);
@@ -54,8 +56,7 @@ parfor iter = 1:nIterations
             catch
                 metrics_all{iter, pc} = [];
             end
-            else
-            end
+     
     end
 end
 end
