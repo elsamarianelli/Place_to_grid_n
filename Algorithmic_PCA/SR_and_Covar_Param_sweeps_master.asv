@@ -57,24 +57,25 @@
 % toggle to turn the parallel processing on or off, so you can use it across platforms?
 % way you store the rate maps to begin with, so that they're in a 3d matrix rather than a cell array the whole time?
 
+% need t redo trajectories for SR!!!!
 %% [0] SETUP & PARAMETERS
 
 % Parameters to set....
-use_SR  = true;             % true = SR matrix, false = Covariance matrix
-use_traj = 'hasselmo';       % uniform = every bin sampled evenly (for covar)
+use_SR  = false;             % true = SR matrix, false = Covariance matrix
+use_traj = 'uniform';        % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
 % lengths of the shorter and longer parallel walls 0.2m and 
 % 0.9m respectively with angled walls equal to 1.9m; 0.5 m height - krupic
 % dimensions - dimensions here match this 
-trap_add = 0;%(351-78)/2;               % set environment warping - 0 = normal rectangle, use 136 for trapezoid?
-In.shape = 'trapezoid';      % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
-PCA_type ='Standard';        % FISTA or sharp_Asymptotics or Non negative
+trap_add = 0; %(351-78)/2;   % set environment warping - 0 = normal rectangle, use 136 for trapezoid?
+In.shape = 'trapezoid';        % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
+PCA_type = 'Standard';       % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = false  ;        % true = density varies with distance to boundary
-pc_size    = false   ;         % true = size also varies relatively
+pc_density = true  ;       % true = density varies with distance to boundary
+pc_size    = true   ;      % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
                             % the mean firing rate matches that of the varied setting
@@ -82,16 +83,16 @@ mean_firing_match = true;   % true = the size of generated place fields is set s
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 250;           % number of place cells - set higher when NN = true
+In.n_cells = 500;           % number of place cells - set higher when NN = true
 In.n_steps = 360000;        % trajectory length
-In.dim_x = 351;% 728;             % environment dimensions
+In.dim_x = 351;% 728;       % environment dimensions
 In.dim_y = 351;             % y = 351 for square, 195 for trapezoid;
 In.n_polys = 1;
 In.NumberOfPC = 250;        % number of grids to generate
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_square_env_uni_traj_SR'; 
+base_dir = 'grids_data_trap_env_uni_traj'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -184,6 +185,30 @@ parfor iter = 1:n_iterations
             eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false, ...
                 'NumComponents', In_local.NumberOfPC);
         end
+
+% % [dim_x, dim_y, num_cells]
+% X = reshape(NeuronxEnvMat, [], num_cells);  % Now: [spatial_bins × num_cells]
+% 
+% % Remove bins that are NaN for any cell
+% X = X(all(~isnan(X), 2), :);  % Remove bad rows
+% 
+% % Now compute covariance between cells (columns of X)
+% C = cov(X);  % Size: num_cells × num_cells
+% figure
+% imagesc(C);
+% colorbar;
+% xlabel('Cell');
+% ylabel('Cell');
+% title('Cell Covariance Matrix (Spatial Firing)');
+% axis square;
+% 
+% figure
+% imagesc(eigvec);
+% colorbar;
+% xlabel('Cell');
+% ylabel('EigenVector');
+% title('Eigenvector Matrix');
+% axis square;
 
     elseif strcmp(PCA_type, 'sharp_assymptotics') % Motanari and Richards 2014 algorithm
          %quite slow

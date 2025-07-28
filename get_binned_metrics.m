@@ -10,7 +10,7 @@ function [binned_sac, binned_metrics_three, binned_metrics_nine, binned_metrics_
 % grid cells are only included if every region has enough peaks (6 - from
 % stensola methods)
 
-% --- 1. Divide map into 3x3 blocks ---
+% --- 1. Divide map into blocks ---
 [rows, cols] = size(full_map);
 row_blocks = round([rows/3, rows/3, rows - 2*round(rows/3)]);
 col_blocks = round([cols/3, cols/3, cols - 2*round(cols/3)]);

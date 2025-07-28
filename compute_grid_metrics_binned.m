@@ -3,7 +3,6 @@ function metrics_all = compute_grid_metrics_binned(Grid_cells, binning_mode)
 
 % Inputs:
 %   Grid_cells   - Cell array of grid cell data across iterations.
-%   shape        - Shape used for SAC/gridness ('hexagon', etc.)
 %   binning_mode - How to bin environment ('three', 'trapezoid_lr')
 %
 % Output:
@@ -39,18 +38,13 @@ parfor iter = 1:nIterations
                         % else
                             metrics_all{iter, pc}.three       = binned_three;
                             metrics_all{iter, pc}.nine        = binned_nine;
-                            metrics_all{iter, pc}.variability = binned_var;
+                            % metrics_all{iter, pc}.variability = binned_var;
                         % end
                         
                     case 'trapezoid_lr' %% need to change
-                        map = rot90(map)
-                        [~, binned_two, binned_var2] = get_binned_metrics_trapezoid(map);
-                        if any(arrayfun(@(x) any(isnan(x.scale_h)), binned_two))
-                            metrics_all{iter, pc} = [];
-                        else
-                            metrics_all{iter, pc}.trapezoid_lr           = binned_two;
-                            metrics_all{iter, pc}.variability_trapezoid  = binned_var2;
-                        end
+                        % map = rot90(map)
+                        [~, binned_two] = get_binned_metrics_halves(map);
+                        metrics_all{iter, pc}.trapezoid_lr   = binned_two;
                 end
                 fprintf("Metrics saved for iter %d, PC %d\n", iter, pc);
             catch
