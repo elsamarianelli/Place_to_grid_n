@@ -68,7 +68,7 @@ use_traj = 'uniform';        % uniform = every bin sampled evenly (for covar)
 % lengths of the shorter and longer parallel walls 0.2m and 
 % 0.9m respectively with angled walls equal to 1.9m; 0.5 m height - krupic
 % dimensions - dimensions here match this 
-trap_add = 0; %(351-78)/2;   % set environment warping - 0 = normal rectangle, use 136 for trapezoid?
+trap_add = (351-78)/2;   % set environment warping - 0 = normal rectangle, use 136 for trapezoid?
 In.shape = 'trapezoid';        % environemtn shape - 'trapezoid' (rectangle or trapexoid) OR can be 'circle'
 PCA_type = 'Standard';       % FISTA or sharp_Asymptotics or Non negative
 
@@ -85,7 +85,7 @@ In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
 In.n_cells = 500;           % number of place cells - set higher when NN = true
 In.n_steps = 360000;        % trajectory length
-In.dim_x = 351;% 728;       % environment dimensions
+In.dim_x = 728;       % environment dimensions
 In.dim_y = 351;             % y = 351 for square, 195 for trapezoid;
 In.n_polys = 1;
 In.NumberOfPC = 250;        % number of grids to generate

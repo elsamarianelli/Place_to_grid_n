@@ -85,6 +85,7 @@ for m = 1:numel(metrics)
     % end
     box off;
     saveas(fig, fullfile(subfolder, ['Bar_', metric, '.svg']));
+    saveas(fig, fullfile(subfolder, ['Bar_', metric, '.fig']));
     close(fig);
 end
 

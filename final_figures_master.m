@@ -4,7 +4,7 @@
 folder = '/Users/Elsa Marianelli/Documents/';
 sub = 'grids_data_trap_env_uni_traj';
 folder = [folder sub '/'];
-basename = 'data_covar_uniform_densityVaried_sizeVaried_WidthControled';
+basename = 'data_covar_uniform_densityVaried_sizeConstant_WidthControled';
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
@@ -26,6 +26,7 @@ plot_place_cell_centres(Info, Place_cells, subfolder, env_shape);
 
 %% [2b] see how place cell field widths and distances vary in environmental regions
 plot_field_width(Place_cells, Info, subfolder, pc_size)
+plot_field_width_trap_lr(Place_cells_all, In, subfolder, pc_size, true)
 
 %% [3] Visualise Example Place Cells
 
@@ -36,7 +37,7 @@ end
 
 figure;
 for i = 1:10
-    map = Place_cells{i*12}.fmap;
+    map = Place_cells{i*17}.fmap;
     subplot(2, 5, i); imagesc(map); hold on;
     plot(x, y, 'w.');
     axis off; axis image;
@@ -57,7 +58,7 @@ end
 saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 
 %% [4B] Example of ellipse fitted to an example grid cell for each bin
-for ind= 50:5:80
+for ind= 70:5:80
     map = Grid_cells{1}{ind}.map;
     visualise_ellipses(map, 'trapezoid')
     figure; imagesc(rot90(map));hold on;     plot(x, y, 'w.');
@@ -66,6 +67,7 @@ saveas(gcf, fullfile(subfolder, ['Example_binned_grid_with_ellipses' num2str(ind
 saveas(gcf, fullfile(subfolder, ['Example_binned_grid' num2str(ind) '.svg']));
 
 close all
+
 %% [5] Compute Grid Cell Metrics in Environment Bins
 % removes any grids where one of the environmental bin cannot fit an
 % ellipse for comprison between bins to be fair, also skips girds
@@ -78,6 +80,7 @@ save(fullfile(subfolder, 'metrics.mat'), 'metrics_all');
 %  bar plots, heatmaps, and metrics table with comparisons
 plot_grid_metrics(metrics_all,subfolder)
 plot_grid_metrics_halves(metrics_all, subfolder)
+
 %% [7] Visualise PCs ascribed to each gridness metrics
 threshold = .5;
-plot_gridness_by_region(metrics_all, threshold, subfolder)        
+plot_gridness_by_region(metrics_all, threshold, subfolder) 
