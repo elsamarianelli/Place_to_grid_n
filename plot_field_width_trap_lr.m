@@ -66,41 +66,33 @@ else
     sig_y(:) = fixed_width;
 end
 
-% === [3] Build environment mask and row-wise center line ===
-map = In.env.map;
+% === [3] Build environment mask and find global vertical centerline ===
+map = In.env.dwmap;
 [nRows, nCols] = size(map);
 
-% Prefer non-NaN as "inside". If map has no NaNs, fall back to >0.
+% Prefer non-NaN as "inside"
 env_mask = ~isnan(map);
 if ~any(env_mask(:))
     env_mask = map ~= 0;
 end
 
+% Count how many valid (in-bounds) cells in each column
+col_counts = sum(env_mask, 1);  % 1 × nCols
+cumulative = cumsum(col_counts);
+total_valid = cumulative(end);
+half_count = total_valid / 2;
+
+% Find column that best splits total area in half
+[~, split_col] = min(abs(cumulative - half_count));
+
+% Build binary masks for left and right
 left_mask  = false(nRows, nCols);
 right_mask = false(nRows, nCols);
 
-for r = 1:nRows
-    cols_in = find(env_mask(r, :));
-    if isempty(cols_in), continue; end
-    c_min = cols_in(1);
-    c_max = cols_in(end);
-    c_center = floor( (c_min + c_max) / 2 );
-
-    if include_centerline
-        % Include centerline with Left
-        left_mask(r, c_min : c_center) = env_mask(r, c_min : c_center);
-        if c_center + 1 <= c_max
-            right_mask(r, c_center+1 : c_max) = env_mask(r, c_center+1 : c_max);
-        end
-    else
-        % Exclude centerline column from both halves
-        if c_center - 1 >= c_min
-            left_mask(r, c_min : c_center-1) = env_mask(r, c_min : c_center-1);
-        end
-        if c_center + 1 <= c_max
-            right_mask(r, c_center+1 : c_max) = env_mask(r, c_center+1 : c_max);
-        end
-    end
+% Assign left and right sides
+left_mask(:, 1:split_col) = env_mask(:, 1:split_col);
+if split_col + 1 <= nCols
+    right_mask(:, split_col+1:end) = env_mask(:, split_col+1:end);
 end
 
 % === [4] Assign each PC to Left or Right ===

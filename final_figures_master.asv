@@ -4,15 +4,15 @@
 folder = '/Users/Elsa Marianelli/Documents/';
 sub = 'grids_data_trap_env_uni_traj';
 folder = [folder sub '/'];
-basename = 'data_covar_uniform_densityVaried_sizeVaried_WidthControled';
+basename = 'data_covar_uniform_densityVaried_sizeConstant_WidthControled';
 nIterations = 5;
 
 [Info, Place_cells, Grid_cells] = load_SR_or_covar_data(folder, basename, nIterations);
 
 % options for metrics and plotting 
-env_shape = 'trapezoid'; % 'rectangle' OR 'trapezoid' 
-binning_mode = 'trapezoid_lr';  % if rectangle use 'three' OR if trapezoid use 'trapezoid_lr'
-pc_size = true; % if size Varied^
+env_shape = 'rectangle'; % 'rectangle' OR 'trapezoid' 
+binning_mode = 'three';  % if rectangle use 'three' OR if trapezoid use 'trapezoid_lr'
+pc_size = false; % if size Varied^
 
 % Create subfolder for saving figures
 subfolder = fullfile([sub '_trapezoid_figs'], basename);
@@ -58,7 +58,7 @@ end
 saveas(gcf, fullfile(subfolder, 'Figure_B_grid.svg'));
 
 %% [4B] Example of ellipse fitted to an example grid cell for each bin
-for ind= 100:3:110
+for ind= 100:3:130
 
     figure; imagesc(rot90(map));hold on;     plot(x, y, 'w.');
     % figure; imagesc(map);
@@ -96,9 +96,7 @@ basenames = {'data_covar_uniform_densityConstant_sizeConstant_WidthControled';..
 'data_covar_uniform_densityVaried_sizeConstant_WidthControled'};
 
 % reload metrics_all as metrics.mat
-corner_scales = cellfun(@(m) m.three(1).scale_h, metrics_all);
-edge_scales   = cellfun(@(m) m.three(2).scale_h, metrics_all);
-center_scales = cellfun(@(m) m.three(3).scale_h, metrics_all);
 
-% plot the distribution of scales for each 
-
+% get the grid scale for each PrincComp for each cell in metrics_all{5,
+% 250}
+scales = metrics_all{1,1}.three.scale_h;
