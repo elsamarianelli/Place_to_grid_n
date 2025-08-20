@@ -1,13 +1,10 @@
 function plot_grid_metrics_halves(metrics_all, subfolder)
 % Plots bar plots of grid metrics from trapezoid_lr binned maps (Left vs Right)
 % Averages across PCs per iteration, compares Left vs Right with a
-% STANDARD paired Student's t-test (no Welch), and saves figures + CSVs.
+% STANDARD paired Student's t-test, and saves figures + CSVs.
 %
-% INPUTS
-%   metrics_all : nIterations x nPCs cell array. Each cell either [] or a
-%                 struct with field .trapezoid_lr (1x2 struct array: Left, Right)
-%                 that holds the metric fields listed below.
-%   subfolder   : output folder for figures and tables
+% N in the output table = sum over iterations of how many PC values
+% actually contributed to each iteration's mean for Left/Right.
 
 % === CONFIG ===
 metrics = {'expGrd_h_el','expGrd_h','scale_h', ...
@@ -21,15 +18,16 @@ xtick_labels = {'Left','Right'};
 [nIterations, nPCs] = size(metrics_all);
 if ~exist(subfolder, 'dir'); mkdir(subfolder); end
 
-% Optional y-axis limits (comment out to disable per metric)
+% Optional y-axis limits
 metric_ranges = struct( ...
     'expGrd_h_el', [.3 1.3], 'expGrd_h', [.3 1], 'scale_h', [30 70], ...
     'expGrd_s_el', [.3 1.3], 'expGrd_s', [.3 1], 'scale_s', [30 70], ...
     'eccent', [0.3 0.9], 'orient', [30 90], 'orient_peak', [0 60]);
 
 % === Data containers ===
-mean_std_data = {};   % rows: {Metric, Region, Mean, Std}
-comparison_data = {}; % rows: {Metric, Comparison, t_value, df, p_value, CI_lower, CI_upper, Cohen_d_paired, Significance}
+% Now includes N as 5th column
+mean_std_data   = {};  % {'Metric','Region','Mean','Std','N'}
+comparison_data = {};  % {'Metric','Comparison','t_value','df','p_value','CI_lower','CI_upper','Cohens_d_paired','Significance'}
 
 bar_colors_main = {[.8 .8 .8], [.3 .3 .3]}; % Left, Right
 
@@ -37,7 +35,8 @@ bar_colors_main = {[.8 .8 .8], [.3 .3 .3]}; % Left, Right
 for m = 1:numel(metrics)
     metric = metrics{m};
     title_str = metric_titles{m};
-    vals_all = nan(nIterations, 2);  % columns: [Left, Right]
+    vals_all  = nan(nIterations, 2);   % [Left, Right] iteration means
+    pc_counts = zeros(nIterations, 2); % per-iteration counts of contributing PCs
 
     % ----- aggregate PCs -> iteration means -----
     for iter = 1:nIterations
@@ -50,47 +49,51 @@ for m = 1:numel(metrics)
                     % Expect 1x2 struct array with metric fields
                     tbl = struct2table(data.trapezoid_lr);
                     if ismember(metric, tbl.Properties.VariableNames)
-                        v = tbl.(metric);  % should be [2x1] or [1x2]
+                        v = tbl.(metric);  % 2x1 or 1x2
                         v = v(:).';        % force row [Left Right]
                         if numel(v) >= 2
                             vals(pc, :) = v(1:2);
                         end
                     end
                 catch
-                    % skip malformed entries
+                    % skip malformed
                 end
             end
         end
 
-        % mean across PCs for this iteration
-        vals_all(iter, :) = mean(vals, 1, 'omitnan');
+        % mean across PCs for this iteration + how many PCs contributed
+        vals_all(iter, :)  = mean(vals, 1, 'omitnan');
+        pc_counts(iter, :) = sum(~isnan(vals), 1);
     end
 
     % ----- across-iteration summary -----
     grand_mean = mean(vals_all, 1, 'omitnan');
     grand_std  = std(vals_all, 0, 1, 'omitnan');
 
-    % store means/SDs
-    mean_std_data(end+1,:) = {title_str, 'Left',  grand_mean(1), grand_std(1)};
-    mean_std_data(end+1,:) = {title_str, 'Right', grand_mean(2), grand_std(2)};
+    % NEW: total N per side = sum over iterations of contributing PCs
+    N_sides = sum(pc_counts, 1); % [N_left, N_right]
 
-    % ----- STANDARD paired t-test: Left vs Right -----
+    % store means/SDs (+ N)
+    mean_std_data(end+1,:) = {title_str, 'Left',  grand_mean(1), grand_std(1), N_sides(1)};
+    mean_std_data(end+1,:) = {title_str, 'Right', grand_mean(2), grand_std(2), N_sides(2)};
+
+    % ----- Paired Student's t-test: Left vs Right -----
     g1 = vals_all(:,1);  % Left
     g2 = vals_all(:,2);  % Right
     try
-        [~, p, ci, stats] = ttest(g1, g2);  % paired Student's t-test
+        [~, p, ci, stats] = ttest(g1, g2);  % paired
         t_stat = stats.tstat;
-        df     = stats.df;
+        df     = stats.df;                  % df = nPairs - 1
     catch
         p = NaN; ci = [NaN NaN]; t_stat = NaN; df = NaN;
     end
 
-    % Effect size for paired data: Cohen's d_z = mean(diff) / sd(diff)
-    dvec      = g1 - g2;
-    cohen_d_p = (mean(dvec, 'omitnan')) ./ (std(dvec, 'omitnan'));
+    % Paired effect size: Cohen's d_z
+    dvec            = g1 - g2;
+    Cohens_d_paired = mean(dvec, 'omitnan') ./ std(dvec, 'omitnan');
 
     comparison_data(end+1,:) = { ...
-        title_str, 'Left vs Right', t_stat, df, p, ci(1), ci(2), cohen_d_p, pval_star(p)};
+        title_str, 'Left vs Right', t_stat, df, p, ci(1), ci(2), Cohens_d_paired, pval_star(p)};
 
     % ----- Plot bar with error bars -----
     fig = figure('Visible','off','Units','inches','Position',[1 1 4 4]);
@@ -113,7 +116,7 @@ end
 
 % === Save Summary Tables ===
 mean_std_tbl = cell2table(mean_std_data, ...
-    'VariableNames', {'Metric','Region','Mean','Std'});
+    'VariableNames', {'Metric','Region','Mean','Std','N'});
 writetable(mean_std_tbl, fullfile(subfolder, 'Metric_Means_by_Region_HALVES.csv'));
 
 comparison_tbl = cell2table(comparison_data, ...
@@ -122,4 +125,17 @@ writetable(comparison_tbl, fullfile(subfolder, 'Metric_Region_Comparisons_HALVES
 
 end
 
-
+% ===== Helper =====
+function stars = pval_star(p)
+if isnan(p)
+    stars = '';
+elseif p < 0.001
+    stars = '***';
+elseif p < 0.01
+    stars = '**';
+elseif p < 0.05
+    stars = '*';
+else
+    stars = 'n.s.';
+end
+end

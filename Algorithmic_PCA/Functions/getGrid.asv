@@ -14,7 +14,7 @@ function [cells] = getGrid(cells, M, env)
 %           is the computed grid cell representation.
 
 % Set the standard deviation for Gaussian smoothing
-smth_sig = 2;
+smth_sig = 3;
 
 % eigendecomp of Matrix
 [V, ~] = eig(M);
@@ -39,7 +39,7 @@ for i = 1:length(cells)
     grid_map = grid_map ./ max(grid_map(:));
     
     % Apply Gaussian smoothing to the grid map, adjusting for environment mask
-    % grid_map = imgaussfilt(grid_map, smth_sig) ./ imgaussfilt(1 * (env.L == 2), smth_sig);
+    grid_map = imgaussfilt(grid_map, smth_sig) ./ imgaussfilt(1 * (env.L == 2), smth_sig);
     
     % Set areas outside the environment (where L <= 1) to NaN
     grid_map(env.L <= 1) = NaN;

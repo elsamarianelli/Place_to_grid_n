@@ -72,7 +72,7 @@ PCA_type = 'Standard';       % FISTA or sharp_Asymptotics or Non negative
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
 pc_density = true  ;       % true = density varies with distance to boundary
-pc_size    = false   ;      % true = size also varies relatively
+pc_size    = true   ;      % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
                             % the mean firing rate matches that of the varied setting
@@ -80,7 +80,7 @@ mean_firing_match = true;   % true = the size of generated place fields is set s
 % Additional parameters and environemnt details...should remain constant...
 In.pf_width_cntrl = 2;      % Field width divisor (2 = narrower PCs)
 n_iterations = 5;
-In.n_cells = 500;           %%CHANGE BACK T 500?     % number of place cells - set higher when NN = true
+In.n_cells = 250;           %%CHANGE BACK T 500?     % number of place cells - set higher when NN = true
 In.n_steps = 360000;        % trajectory length
 In.dim_x = 351;%728;        % environment dimensions
 In.dim_y = 351;             % y = 351 for square, 195 for trapezoid;
@@ -89,7 +89,7 @@ In.NumberOfPC = 250;        % number of grids to generate
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_trap_env_SR_500_placecells'; 
+base_dir = 'grids_data_trap_env_SR'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
