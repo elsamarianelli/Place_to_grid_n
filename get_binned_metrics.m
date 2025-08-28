@@ -1,4 +1,5 @@
 function [binned_sac, binned_metrics_three, binned_metrics_nine, binned_metrics_variability] = get_binned_metrics(full_map)
+
 % GET_BINNED_METRICS Computes grid metrics in 3x3 spatial bins.
 % Outputs:
 %   - binned_sac:            3x3 cell array of SACs (spatial autocorrelograms)
