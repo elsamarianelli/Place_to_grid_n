@@ -14,7 +14,7 @@ Inside the script you can toggle:
 - Place-cell population type (uniform, boundary_modulated, size_only, density_only)
 - Dimensionality reduction mode (covariance vs SR)
 - PCA version (standard PCA or NNPCA/FISTA variants; see below)
-- Trajectory type (for SR you can use uniform or the foraging model)
+- Trajectory type (for SR you can use uniform or the foraging model) _Note_ that here you can't use the pregenerated trajectories, need to generate from scratch.
 
 (pipeline visualisation...)
 <img width="500" alt="image" src="https://github.com/user-attachments/assets/ce5eb587-69f1-4f87-8e5c-ed1303355b99" />
