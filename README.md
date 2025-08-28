@@ -1,6 +1,8 @@
 This repository turns place-cell population activity into grid-like spatial maps using dimensionality-reduction. There are two main analysis routes:
+
 1) Simulate exploration, build a neuron×neuron covariance matrix from place-cell firing, run PCA, and project components back to 2D space to obtain grid-like rate maps.
-2)Simulate a foraging trajectory, learn a Successor Representation (SR) matrix from place-cell activity with temporal-difference updates, take leading eigenvectors, and project them back into space to yield grid-like maps.
+  
+3) Simulate a foraging trajectory, learn a Successor Representation (SR) matrix from place-cell activity with temporal-difference updates, take leading eigenvectors, and project them back into space to yield grid-like maps.
 Whilst the current write up includes the primary results use the Covariance PCA path without non-negativity constraints, this repo also includes several experimental options (below) that were explored but not used in the paper’s main analyses.
 
 _**The 2 main scripts to run in this repo are:**_ 
