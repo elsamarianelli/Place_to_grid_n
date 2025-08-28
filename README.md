@@ -21,14 +21,14 @@ Inside the script you can toggle:
 
 _**Pipelines**_
 
-**1) Covariance → PCA pipeline**
+**1) Covariance pipeline**
 - Simulate place cells in a 2D environment (square or trapezoid). Boundary-modulated variants control field size and/or centre distribution as a function of distance to walls; uniform variants keep these constant.
 - Uniform trajectory: record each neuron’s time series, zero-mean, and build the covariance matrix (neurons × neurons).
 - PCA with MATLAB pca(...,'Algorithm','eig','Centered',false). Select top components (e.g., 250).
 - Project back to space using the PC weights over the original 2D place fields to obtain grid-like maps.
 - Compute spatial metrics per bin (3×3 in squares; halves in trapezoid) and aggregate by region; save CSVs and figures. 
 
-**2) SR (Successor Representation) pipeline**
+**2) SR pipeline**
 
 - Foraging model (velocity-based): at 50 Hz for 360,000 steps (~2 h), heading noise ~ 𝒩(0, 0.2 rad), speed ~ Rayleigh(b = 16), capped at 50 units/step; turn away and slow within 7 units of walls to ensure realistic sampling.
 - Record place-cell firing over the trajectory.
