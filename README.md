@@ -59,7 +59,8 @@ Minimises Difference-of-Gaussians (DoG) energy, which acts as a band-pass prior 
 
 - Bar plots (for square arena: Corners / Edges / Centre; for trapezoid: Left / Right). Bars are means of iteration means; error bars are SD across iterations.
 - Heatmaps (square): 3×3 bin maps averaged across PCs and iterations for each metric.
-Statistic
+ 
+Stats
 - Square arena: paired Student’s t-tests on iteration means for each pair: Corners–Edges, Corners–Centre, Edges–Centre. Two-tailed α = .05. Reports t, df, two-sided p, 95% CI, and paired Cohen’s dₓ (dz).
 - Trapezoid: paired t-test on iteration means Left vs Right, with the same outputs.
 
