@@ -3,6 +3,7 @@
 % load data
 folder = '/Users/Elsa Marianelli/Documents/';
 sub = 'grids_data_trap_env_uni_traj_trapezoid_figs';
+
 folder = [folder sub '/'];
 basename = 'data_covar_uniform_densityConstant_sizeConstant_WidthControled';
 % basename = 'data_SR_generate_densityConstant_sizeConstant_WidthControled';
@@ -103,8 +104,8 @@ basenames = {'data_covar_uniform_densityConstant_sizeConstant_WidthControled';..
 % 'data_SR_generate_densityVaried_sizeVaried_WidthControled';...
 % 'data_SR_generate_densityConstant_sizeVaried_WidthControled';...
 % 'data_SR_generate_densityVaried_sizeConstant_WidthControled'};
-
-folder = '/Users/Elsa Marianelli/Documents/';
+folder = '/Users/elsamarianelli/Documents/data_grids/grids_data_square_env_uni_traj_plots_and_comps';
+% folder = '/Users/Elsa Marianelli/Documents/';
 % sub = 'grids_data_square_env_uni_traj_plots_and_comps';
 sub = 'grids_data_trap_env_uni_traj_trapezoid_figs'; 
 folder = [folder sub '/'];
@@ -129,6 +130,7 @@ end
 %% comb 
 % === SETTINGS ===
 sub = 'grids_data_trap_env_uni_traj_trapezoid_figs';
+
 folder = [folder sub '/'];
 
 basenames = {'data_covar_uniform_densityConstant_sizeConstant_WidthControled';...
@@ -136,7 +138,7 @@ basenames = {'data_covar_uniform_densityConstant_sizeConstant_WidthControled';..
              'data_covar_uniform_densityConstant_sizeVaried_WidthControled';...
              'data_covar_uniform_densityVaried_sizeConstant_WidthControled'};
 
-outFile = fullfile(folder,'All_Metrics_HALVES.xlsx');
+outFile = fullfile(folder,'All_Metrics_comb.xlsx');
 
 % List the metrics you want to keep (leave empty to keep all)
 metricsToInclude = {};  % e.g. {'Gridness','Scale'}
@@ -149,8 +151,8 @@ allMetrics = strings(0,1);
 
 for b = 1:numel(basenames)
     subfolder = fullfile(folder, basenames{b});
-    meansPath = fullfile(subfolder,'Metric_Means_by_Region_HALVES.csv');
-    compsPath = fullfile(subfolder,'Metric_Region_Comparisons_HALVES.csv');
+    meansPath = fullfile(subfolder,'Metric_Means_by_Region_f.csv');
+    compsPath = fullfile(subfolder,'Metric_Region_Comparisons_paired_f.csv');
 
     if isfile(meansPath)
         Tm = readtable(meansPath,'TextType','string');

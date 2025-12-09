@@ -181,6 +181,8 @@ parfor iter = 1:n_iterations
             eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false, ...
                 'NumComponents', In_local.NumberOfPC);
         end
+C = cov(NeuronxTimeMat');
+imagesc(C)
 
 % % [dim_x, dim_y, num_cells]
 % X = reshape(NeuronxEnvMat, [], num_cells);  % Now: [spatial_bins × num_cells]
