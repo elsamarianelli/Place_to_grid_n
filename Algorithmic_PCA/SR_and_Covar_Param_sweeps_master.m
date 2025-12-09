@@ -1,31 +1,4 @@
 %% Grid Cell Generation and Parameter Sweep Analysis
-% Notes to self:
-% -- run with sqare not rectangular environment 
-% how to stensola determine gridness - thresholding, mean, exclusions?
-%       leav this --- 1) they shuffle and take over chance, 5p, 100 permutations to find
-%       grid cells
-%       --- 2) they do expanded gridness like ours
-%       done --- 3) only take grid fields where there are at least 6 peaks in each
-%       bin for 3x3 analysis ellipsisity and orientation...gridness mean i
-%       think they take all included grids after shuffling procedure
-% --- plot actual mean gridness not just percent over arbitrary threshold
-% --- whisker plot instead of bar plots
-% --- bin wise covariance - aka uniform tiled trajector - removing hasselmo
-% --- trajectory for simplicity 
-% plot on general statistics of simulation - environmnetal ccupancy, place
-% cell stats, mena firing rate plots,
-% need to add statistical comparison table generator between bar charts +
-% need to make binned ellipse sac figure like in stensola...
-
-% EXTRA...
-% note about stensola sterotyped trajectories potentially warping results
-% mini comp olots of gridness/scale between cvar and SR maybe to compare
-% the SR and covar in the uniform case
-% do highly sterotyped trajectories account for any aspect of the stensola
-% result, lets say we start the hasselmo trajectory in the same are each
-% time, and then look at ellpicity (using SR martrix) would this get some
-% weird ellipicity in one corner? onl ydo if there is time at the end...
-
 % Author: Elsa Marianelli, UCL (2025) – zcbtetm@ucl.ac.uk
 % Adapted from: Will de Cothi (2018) – Successor Representation code
 %
@@ -47,14 +20,6 @@
 %       - Spatial scale
 %       - Spatial autocorrelograms (SACs)
 %       - 2D grid cell rate maps
-
-% Updates to be made
-% input option that stops any plots being generated (e.g. in GenerateEnv, etc)
-% clear variables immediately when they become redundant, to manage memory better
-% toggle to turn the parallel processing on or off, so you can use it across platforms?
-% way you store the rate maps to begin with, so that they're in a 3d matrix rather than a cell array the whole time?
-
-% need t redo trajectories for SR!!!!
 %% [0] SETUP & PARAMETERS
 
 % Parameters to set....
@@ -184,30 +149,6 @@ parfor iter = 1:n_iterations
 C = cov(NeuronxTimeMat');
 imagesc(C)
 
-% % [dim_x, dim_y, num_cells]
-% X = reshape(NeuronxEnvMat, [], num_cells);  % Now: [spatial_bins × num_cells]
-% 
-% % Remove bins that are NaN for any cell
-% X = X(all(~isnan(X), 2), :);  % Remove bad rows
-% 
-% % Now compute covariance between cells (columns of X)
-% C = cov(X);  % Size: num_cells × num_cells
-% figure
-% imagesc(C);
-% colorbar;
-% xlabel('Cell');
-% ylabel('Cell');
-% title('Cell Covariance Matrix (Spatial Firing)');
-% axis square;
-% 
-% figure
-% imagesc(eigvec);
-% colorbar;
-% xlabel('Cell');
-% ylabel('EigenVector');
-% title('Eigenvector Matrix');
-% axis square;
-
     elseif strcmp(PCA_type, 'sharp_assymptotics') % Motanari and Richards 2014 algorithm
          %quite slow
         [NeuronxEnvMat, NeuronxTimeMat] = reformat_firing_maps(Cells, traj);
@@ -270,74 +211,3 @@ imagesc(C)
 end
    
 disp('All done.');
-
-% %% Visiualising environemnt occupancy with trajectories
-% % ---- Define binning parameters ----
-% bin_size = 5;
-% sigma = 2;
-% 
-% % ---- Grid edges based on both trajectories ----
-% edges_x = min([traj_hass(:,1); traj_uni(:,1)]):bin_size:max([traj_hass(:,1); traj_uni(:,1)]);
-% edges_y = min([traj_hass(:,2); traj_uni(:,2)]):bin_size:max([traj_hass(:,2); traj_uni(:,2)]);
-% 
-% % ---- 2D Occupancy histograms (raw counts) ----
-% occ_hass = histcounts2(traj_hass(:,2), traj_hass(:,1), edges_y, edges_x);
-% occ_uni  = histcounts2(traj_uni(:,2),  traj_uni(:,1),  edges_y, edges_x);
-% 
-% % ---- Normalize to percentage ----
-% occ_hass = occ_hass / length(traj_hass) * 100;
-% occ_uni  = occ_uni  / length(traj_uni)  * 100;
-% 
-% % ---- Smooth occupancy maps ----
-% occ_hass = imgaussfilt(occ_hass, sigma);
-% occ_uni  = imgaussfilt(occ_uni,  sigma);
-% 
-% % ---- Separate into 3 environmental bins (corner, edge, center) ----
-% % Assume this function exists and returns a struct with fields:
-% %   .corner, .edge, .center, each with occupancy percentages
-% binned_hass = get_binned_metrics(occ_hass, 'hexagon');
-% binned_uni  = get_binned_metrics(occ_uni,  'hexagon');
-% 
-% % Extract occupancy values for bar plots (use mean or sum depending on output)
-% occ3_hass = [mean(binned_hass.corner.occ_pct), ...
-%              mean(binned_hass.edge.occ_pct), ...
-%              mean(binned_hass.center.occ_pct)];
-% 
-% occ3_uni = [mean(binned_uni.corner.occ_pct), ...
-%             mean(binned_uni.edge.occ_pct), ...
-%             mean(binned_uni.center.occ_pct)];
-% 
-% % ---- Create 2x2 plot layout ----
-% figure;
-% 
-% % Top-left: Hasselmo occupancy heatmap
-% subplot(2,2,1);
-% imagesc(occ_hass); axis equal off;
-% title('Occupancy Heatmap – HASS');
-% colorbar;
-% axis([0, 0.3]);
-% 
-% % Top-right: Uniform occupancy heatmap
-% subplot(2,2,2);
-% imagesc(occ_uni); axis equal off;
-% title('Occupancy Heatmap – UNI');
-% colorbar;
-% axis([0, 0.3]);
-% 
-% % Bottom-left: HASS bar chart
-% subplot(2,2,3);
-% bar(occ3_hass);
-% set(gca, 'XTickLabel', {'Corner', 'Edge', 'Center'}, 'FontSize', 10);
-% ylabel('% Occupancy');
-% title('HASS Occupancy by Region');
-% ylim([0, max([occ3_hass, occ3_uni]) * 1.1]);
-% 
-% % Bottom-right: UNI bar chart
-% subplot(2,2,4);
-% bar(occ3_uni);
-% set(gca, 'XTickLabel', {'Corner', 'Edge', 'Center'}, 'FontSize', 10);
-% ylabel('% Occupancy');
-% title('UNI Occupancy by Region');
-% ylim([0, max([occ3_hass, occ3_uni]) * 1.1]);
-% 
-% sgtitle('Trajectory Occupancy and Spatial Distribution');
