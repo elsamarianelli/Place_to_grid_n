@@ -93,15 +93,15 @@ for i = 1:3
     end
 end
 
-if ~all(six_peaks_mask(:))
-    for i = 1:3
-        for j = 1:3
-            for m = 1:numel(non_grid_metrics)
-                binned_metrics_nine(i,j).(non_grid_metrics{m}) = NaN;
-            end
-        end
-    end
-end
+% if ~all(six_peaks_mask(:)) -- removed so everything is included
+%     for i = 1:3
+%         for j = 1:3
+%             for m = 1:numel(non_grid_metrics)
+%                 binned_metrics_nine(i,j).(non_grid_metrics{m}) = NaN;
+%             end
+%         end
+%     end
+% end
 
 % --- 6. Define region groupings ---
 corners = {[1,1], [1,3], [3,1], [3,3]};

@@ -23,8 +23,8 @@
 %% [0] SETUP & PARAMETERS
 
 % Parameters to set....
-use_SR  = true;              % true = SR matrix, false = Covariance matrix
-use_traj = 'generate';       % uniform = every bin sampled evenly (for covar)
+use_SR  = false;              % true = SR matrix, false = Covariance matrix
+use_traj = 'uniform';       % uniform = every bin sampled evenly (for covar)
                              % hasselmo = standard one with wall avoidance
                              % and speed angle changes 
 % lengths of the shorter and longer parallel walls 0.2m and 
@@ -36,7 +36,7 @@ PCA_type = 'Standard';       % FISTA or sharp_Asymptotics or Non negative
 
 % Place Cell controls - both true = tanni, both false = uniform, can vary
 % independantly % to run - true true, false false, true flase
-pc_density = true  ;       % true = density varies with distance to boundary
+pc_density = false  ;       % true = density varies with distance to boundary
 pc_size    = false   ;      % true = size also varies relatively
 
 mean_firing_match = true;   % true = the size of generated place fields is set such that 
@@ -54,7 +54,7 @@ In.NumberOfPC = 250;        % number of grids to generate
 In.bound_ctrl = 2;
             
 % Folder naming tags - vary according to settings
-base_dir = 'grids_data_trap_env_SR_500_placecells'; 
+base_dir = 'grids_data_square_env_covar_500_placecells_NEW'; 
 method_tag = 'SR'; if ~use_SR; method_tag = 'covar'; end
 traj_tag = use_traj;  
 density_tag = 'densityVaried' ; if ~ pc_density; density_tag = 'densityConstant'; end
@@ -146,8 +146,6 @@ parfor iter = 1:n_iterations
             eigvec = pca(NeuronxTimeMat', 'Algorithm', 'eig', 'Centered', false, ...
                 'NumComponents', In_local.NumberOfPC);
         end
-C = cov(NeuronxTimeMat');
-imagesc(C)
 
     elseif strcmp(PCA_type, 'sharp_assymptotics') % Motanari and Richards 2014 algorithm
          %quite slow
